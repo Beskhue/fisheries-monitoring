@@ -1,0 +1,20 @@
+/.vs
+*.sln
+*.pyc
+*.pyproj
+__pycache__
+
+# Data
+/data
+
+# Build
+/EnactiveAgents.egg-info/
+/dist/
+
+# Docs
+/docs/_build
+/docs/_static
+/docs/_templates
+/docs/make.bat
+/docs/Makefile
+
