@@ -91,7 +91,7 @@ class DataLoader:
 
             filenames = glob.glob(os.path.join(dir, "*.jpg"))
             for filename in filenames:
-                x.append(lambda: self.load(filename))
+                x.append((lambda filename: lambda: self.load(filename))(filename))
                 y.append(clss)
 
 
