@@ -4,7 +4,7 @@ import pprint
 
 def example():
     """
-    Run the pipeline example (tests if the pipeline runs succesfully, should output ).
+    Run the pipeline example (tests if the pipeline runs succesfully, should produce summary output of the first batch and first case in that batch).
     """
 
     pl = pipeline.Pipeline()
