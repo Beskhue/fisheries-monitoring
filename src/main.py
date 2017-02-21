@@ -1,6 +1,7 @@
 from clize import run
-import pipeline
 import pprint
+import pipeline
+import darknet
 
 def example():
     """
@@ -18,5 +19,16 @@ def example():
     print("First image meta information:")
     pprint.pprint(meta[0])
 
+def convert_annotations_to_darknet(single_class = False):
+    """
+    Convert the bounding box annotations to the format supported by Darknet.
+
+    single_class: Whether to collapse fish classes to a single class (i.e., all classes become "Fish")
+    """
+    
+    dl = pipeline.DataLoader()
+    train_imgs = dl.get_train_images_and_classes()
+    darknet.save_annotations_for_darknet(train_imgs, single_class = single_class)
+
 if __name__ == "__main__":
-    run(example)
+    run(example, convert_annotations_to_darknet)
