@@ -7,6 +7,9 @@ __pycache__
 # Data
 /data
 
+# Output
+/output
+
 # Build
 /EnactiveAgents.egg-info/
 /dist/
