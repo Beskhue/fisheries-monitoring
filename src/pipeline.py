@@ -10,15 +10,22 @@ import scipy.misc
 import sklearn.model_selection
 
 class Pipeline:
-    def __init__(self):
-        self.data_loader = DataLoader()
+    def __init__(self, class_filter = [], f_middleware = lambda img, y, meta: img):
+        """
+        Pipeline initialization.
+
+        :param class_filter: A list of classes to ignore (i.e., they won't be loaded)
+        :param f_middleware: A function to execute on the loaded raw image, its class and the meta-inform
+        """
+        self.f_middleware = f_middleware
+        self.data_loader = DataLoader(class_filter)
         self.load()
 
     def load(self):
         """
         Load the data
         """
-        self.train_data = self.data_loader.get_train_images_and_classes()
+        self.train_data = self.data_loader.get_train_images_and_classes(self.f_middleware)
         
 
     def train_and_validation_mini_batch_generator_generator(self, mini_batch_size = 128):
@@ -77,10 +84,17 @@ class DataLoader:
     Class for the various data loading routines.
     """
 
+    def __init__(self, class_filter = []):
+        """
+        :param class_filter: A list of classes to ignore (i.e., they won't be loaded)
+        """
+
+        self.class_filter = class_filter
+
     def get_classes(self):
         """
         Get the classes present in the training set.
-
+        
         :return: A list of classes present in the training set.
         """
 
@@ -115,10 +129,12 @@ class DataLoader:
         return bounding_boxes
 
 
-    def get_train_images_and_classes(self):
+    def get_train_images_and_classes(self, f_middleware):
         """
         Method to load the train cases.
 
+        :param f_middleware: A function to execute on the loaded raw image, its class and the meta-information
+                             right after loading it. Should return the (pre-processed) image.
         :return: A dictionary containing the list of classes (y) and list of (function to load) images (x)
         """
 
@@ -130,6 +146,9 @@ class DataLoader:
         bounding_boxes = self.get_bounding_boxes()
 
         for clss in classes:
+            if clss in self.class_filter:
+                continue
+
             dir = os.path.join(settings.TRAIN_DIR, clss)
 
             filenames = glob.glob(os.path.join(dir, "*.jpg"))
@@ -142,7 +161,7 @@ class DataLoader:
                 if clss != "NoF":
                     meta['bounding_boxes'] = bounding_boxes[clss][name]
 
-                x.append((lambda filename: lambda: self.load(filename))(filename))
+                x.append((lambda filename: lambda: f_middleware(self.load(filename), clss, meta))(filename))
                 y.append(clss)
                 m.append(meta)
 
