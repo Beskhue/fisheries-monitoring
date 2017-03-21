@@ -59,8 +59,10 @@ def train_network():
     """
     Train a neural net using the pipeline.
     """
-
+    
     network.train()
+    input("Press Enter to continue...")
+    
 
 def convert_annotations_to_darknet(single_class = False):
     """

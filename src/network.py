@@ -12,33 +12,42 @@ from threadsafe import threadsafe_generator
 def build():
     model = keras.models.Sequential()
 
-    # Convolutional layers
+    # Convolutional layers    
     model.add(keras.layers.Conv2D(
-            filters = 6, 
-            kernel_size = (32, 32), 
+            filters = 5, 
+            kernel_size = (16, 16), 
             input_shape = (200, 200, 3), 
             activation = "relu"))
     model.add(keras.layers.Conv2D(
-            filters = 12, 
-            kernel_size = (32, 32), 
-            activation = "relu"))
-    model.add(keras.layers.MaxPooling2D(pool_size = (2, 2)))
-    model.add(keras.layers.Conv2D(
-            filters = 18, 
-            kernel_size = (16, 16), 
-            activation = "relu"))
-    model.add(keras.layers.Conv2D(
-            filters = 24, 
+            filters = 10, 
             kernel_size = (16, 16), 
             activation = "relu"))
     model.add(keras.layers.MaxPooling2D(pool_size = (2, 2)))
+    model.add(keras.layers.Conv2D(
+            filters = 20, 
+            kernel_size = (16, 16), 
+            activation = "relu"))
     model.add(keras.layers.Conv2D(
             filters = 30, 
+            kernel_size = (16, 16), 
+            activation = "relu"))
+    model.add(keras.layers.MaxPooling2D(pool_size = (2, 2)))
+    model.add(keras.layers.Conv2D(
+            filters = 60, 
+            kernel_size = (8, 8), 
+            activation = "relu"))
+    model.add(keras.layers.Conv2D(
+            filters = 70, 
+            kernel_size = (8, 8), 
+            activation = "relu"))
+    model.add(keras.layers.Conv2D(
+            filters = 80, 
             kernel_size = (8, 8), 
             activation = "relu"))
 
     # Dense layers
     model.add(keras.layers.Flatten())
+    model.add(keras.layers.Dense(units=240, activation = "relu"))
     model.add(keras.layers.Dense(units=240, activation = "relu"))
     model.add(keras.layers.Dense(units=7))
 
