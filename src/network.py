@@ -54,9 +54,12 @@ def build():
     # Output layer
     model.add(keras.layers.Activation("softmax"))
 
+    # Optimizer
+    optimizer = keras.optimizers.Adagrad(lr = 0.0001)
+
     # Compile model
     model.compile(
-            optimizer = 'rmsprop',
+            optimizer = optimizer,
             loss = 'sparse_categorical_crossentropy',
             metrics = ['accuracy'])
     
