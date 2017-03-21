@@ -27,6 +27,36 @@ class Pipeline:
         """
         self.train_data = self.data_loader.get_train_images_and_classes(self.f_middleware)
         
+    def train_and_validation_generator_generator(self):
+        """
+        Generate train and validation generators of the training data, by
+        splitting the data into train and validation sets.
+
+        :return: A dictionary with the training set generator in 'train', 
+                 and the validation set generator in 'validate'
+        """  
+        x_train, x_validate, y_train, y_validate, meta_train, meta_validate = sklearn.model_selection.train_test_split(
+            self.train_data['x'], 
+            self.train_data['y'], 
+            self.train_data['meta'],
+            test_size = 0.2, 
+            stratify = self.train_data['y'])
+
+        def train_generator():
+            while 1:
+                for x, y, meta in zip(x_train, y_train, meta_train):
+                    yield (x, y, meta)
+
+        def validate_generator():
+            while 1:
+                for x, y, meta in zip(x_validate, y_validate, meta_validate):
+                    yield (x, y, meta)
+
+        return {
+            'train': train_generator(),
+            'validate': validate_generator()
+            }
+
 
     def train_and_validation_mini_batch_generator_generator(self, mini_batch_size = 128):
         """
