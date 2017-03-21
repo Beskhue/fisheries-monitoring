@@ -98,8 +98,9 @@ def train(epochs = 100):
     pl = pipeline.Pipeline(class_filter = ["NoF"], f_middleware = crop_and_resize)
     class_count = pl.class_count()
     class_count_idx = {}
+    m = max(class_count.values())
     for clss in class_count:
-        class_count_idx[settings.CLASS_NAME_TO_INDEX_MAPPING[clss]] = float(class_count[clss]) / pl.num_unique_samples()
+        class_count_idx[settings.CLASS_NAME_TO_INDEX_MAPPING[clss]] = float(m) / class_count[clss] / 10
 
     generators = pl.train_and_validation_generator_generator()
 
@@ -122,9 +123,28 @@ def train(epochs = 100):
 
     model.fit_generator(
             batch_generator(generators['train']),
-            steps_per_epoch = 10, 
+            steps_per_epoch = 20, 
             epochs = 10,
             class_weight = class_count_idx,
             validation_data = batch_generator(generators['validate']),
             validation_steps = 2,
             workers = 4)
+
+
+    # Evaluate network on some samples
+    xs = []
+    ys = []
+    n = 0
+    for x, y, meta in generators['validate']:
+        if n >= 32:
+            break
+        
+        n += 1
+
+        xs.append(x())
+        ys.append(settings.CLASS_NAME_TO_INDEX_MAPPING[y])
+
+    print("Predicting some samples:")
+    print("Ground truth:\n%s" % [settings.CLASS_INDEX_TO_NAME_MAPPING[y] for y in ys])
+    ys_pred = model.predict_classes(np.array(xs))
+    print("Predicted:\n%s" % [settings.CLASS_INDEX_TO_NAME_MAPPING[y] for y in ys_pred.tolist()])
