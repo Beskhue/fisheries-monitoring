@@ -215,7 +215,7 @@ class DataLoader:
                 if clss != "NoF":
                     meta['bounding_boxes'] = bounding_boxes[clss][name]
 
-                x.append((lambda filename: lambda: f_middleware(self.load(filename), clss, meta))(filename))
+                x.append((lambda filename, clss, meta: lambda: f_middleware(self.load(filename), clss, meta))(filename, clss, meta))
                 y.append(clss)
                 m.append(meta)
 
