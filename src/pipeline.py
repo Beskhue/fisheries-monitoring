@@ -109,6 +109,30 @@ class Pipeline:
             yield tuple(out)
             start_idx += mini_batch_size
 
+    def num_unique_samples(self):
+        """
+        Count the number of unique samples in the training (and validation) data
+
+        :return: Number of unique samples
+        """
+        return len(self.train_data['y'])
+
+    def class_count(self):
+        """
+        Count the number of occurrences of each class.
+
+        :return: Dictionary of class counts
+        """
+
+        class_count = {}
+        for y in self.train_data['y']:
+            if y not in class_count:
+                class_count[y] = 0
+
+            class_count[y] += 1
+
+        return class_count
+
 class DataLoader:
     """
     Class for the various data loading routines.
