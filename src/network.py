@@ -127,11 +127,11 @@ def train(epochs = 100):
     model.fit_generator(
             batch_generator(generators['train']),
             steps_per_epoch = 20, 
-            epochs = 10,
+            epochs = 200,
             class_weight = class_count_idx,
             validation_data = batch_generator(generators['validate']),
             validation_steps = 2,
-            workers = 4)
+            workers = 2)
 
 
     # Evaluate network on some samples
