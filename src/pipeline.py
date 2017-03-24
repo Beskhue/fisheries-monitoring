@@ -423,7 +423,7 @@ class DataLoader:
         """
         Method to load all the pre-cropped train cases into memory.
         
-        :return: An array with all the images (X) with shape (n_images,300,300,3) and an array with all the
+        :return: An array with all the images (X) with shape (n_images,299,299,3) and an array with all the
                  labels (Y) with shape (n_images,) 
         """
 
@@ -445,8 +445,8 @@ class DataLoader:
                 meta['filename'] = name
                 meta['class'] = clss
                 m.append(m)
-                im = self.load(filename)
-                x.append(im.reshape(-1,300,300,3))
+                im = self.load(filename)[:299,:299,:]
+                x.append(im.reshape(-1,299,299,3))
                 y.append(settings.CLASS_NAME_TO_INDEX_MAPPING[clss])
         
         x = np.vstack(x)
