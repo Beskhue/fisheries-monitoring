@@ -59,9 +59,26 @@ class Pipeline:
                 )        
         
         augmented_generator = datagen.flow(x, y, mini_batch_size)
-        #TODO integrate meta information
+        #TODO integrate meta information to the flow
         
         return augmented_generator
+
+    def augmented_full_generator_generator(self, mini_batch_size = 128):
+        """
+        Use data augmentation to generate a generator for ALL the dataset.
+        :param mini_batch_size: size of the mini-batches
+
+        :return: A dictionary with the full set generator in 'full'
+        """  
+        self.load_precropped()
+
+        x = self.precropped_train_data['x']
+        y = self.precropped_train_data['y']
+        meta = self.precropped_train_data['meta']
+        
+        return {
+            'full': self.augmented_generator_generator(x, y, meta, mini_batch_size)
+        }
         
     def augmented_train_and_validation_generator_generator(self, mini_batch_size = 128):
         """
@@ -416,7 +433,7 @@ class DataLoader:
         m = []
         
         #print('Loading pre-cropped images from ',settings.CROPPED_TRAIN_DIR,'...')
-        only = 7    #For debugging
+        only = 15    #For debugging
         for clss in classes:
             filenames = glob.glob(os.path.join(settings.CROPPED_TRAIN_DIR,clss,'*'))
             
