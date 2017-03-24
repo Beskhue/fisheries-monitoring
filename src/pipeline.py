@@ -5,6 +5,8 @@ Pipeline module defening the various classes required for the pipeline
 import os
 import glob
 import json
+import collections
+import itertools
 import settings
 import scipy.misc
 import sklearn.model_selection
@@ -27,14 +29,16 @@ class Pipeline:
         """
         self.train_data = self.data_loader.get_train_images_and_classes(self.f_middleware)
         
-    def train_and_validation_generator_generator(self):
+    def train_and_validation_generator_generator(self, balance = False):
         """
         Generate train and validation generators of the training data, by
         splitting the data into train and validation sets.
 
+        :param balance: Boolean indicating whether classes should be balanced in the output.
         :return: A dictionary with the training set generator in 'train', 
                  and the validation set generator in 'validate'
-        """  
+        """
+
         x_train, x_validate, y_train, y_validate, meta_train, meta_validate = sklearn.model_selection.train_test_split(
             self.train_data['x'], 
             self.train_data['y'], 
@@ -42,20 +46,62 @@ class Pipeline:
             test_size = 0.2, 
             stratify = self.train_data['y'])
 
-        def train_generator():
-            while 1:
-                for x, y, meta in zip(x_train, y_train, meta_train):
-                    yield (x, y, meta)
+        if balance:
+            # We want to balance the data. First separate the data of each class:
 
-        def validate_generator():
-            while 1:
-                for x, y, meta in zip(x_validate, y_validate, meta_validate):
-                    yield (x, y, meta)
+            class_to_train_data = collections.defaultdict(list)
+            class_to_validate_data = collections.defaultdict(list)
 
-        return {
-            'train': train_generator(),
-            'validate': validate_generator()
-            }
+            for x, y, meta in zip(x_train, y_train, meta_train):
+                class_to_train_data[y].append((x, y, meta))
+
+            for x, y, meta in zip(x_validate, y_validate, meta_validate):
+                class_to_validate_data[y].append((x, y, meta))
+
+            def train_generator():
+                # Create a list of infinite generators for the data in each seperate class
+                generators = []
+
+                for clss in class_to_train_data:
+                    generators.append(itertools.cycle(class_to_train_data[clss]))
+
+                while 1:
+                    for generator in generators:
+                        yield next(generator)
+
+            def validate_generator():
+                # Create a list of infinite generators for the data in each seperate class
+                generators = []
+
+                for clss in class_to_validate_data:
+                    generators.append(itertools.cycle(class_to_validate_data[clss]))
+
+                while 1:
+                    for generator in generators:
+                        yield next(generator)
+
+            return {
+                'train': train_generator(),
+                'validate': validate_generator()
+                }
+
+        else:
+            # We don't want to balance the classes
+
+            def train_generator():
+                while 1:
+                    for x, y, meta in zip(x_train, y_train, meta_train):
+                        yield (x, y, meta)
+
+            def validate_generator():
+                while 1:
+                    for x, y, meta in zip(x_validate, y_validate, meta_validate):
+                        yield (x, y, meta)
+
+            return {
+                'train': train_generator(),
+                'validate': validate_generator()
+                }
 
 
     def train_and_validation_mini_batch_generator_generator(self, mini_batch_size = 128):

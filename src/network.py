@@ -105,7 +105,7 @@ def train(epochs = 100):
     for clss in class_count:
         class_count_idx[settings.CLASS_NAME_TO_INDEX_MAPPING[clss]] = float(m) / class_count[clss] / 10
 
-    generators = pl.train_and_validation_generator_generator()
+    generators = pl.train_and_validation_generator_generator(balance = True)
 
     # Define a method to create a batch generator
     @threadsafe_generator
@@ -128,7 +128,7 @@ def train(epochs = 100):
             batch_generator(generators['train']),
             steps_per_epoch = 20, 
             epochs = 200,
-            class_weight = class_count_idx,
+            # class_weight = class_count_idx,
             validation_data = batch_generator(generators['validate']),
             validation_steps = 2,
             workers = 2)
