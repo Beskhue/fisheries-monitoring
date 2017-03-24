@@ -83,6 +83,7 @@ class TransferLearning:
             steps_per_epoch = int(3299/mini_batch_size), 
             epochs = epochs,
             validation_data = self.generators['validate'],
+            validation_steps = int(0.2*3299/mini_batch_size),
             #workers = 2,
             callbacks = callbacks_list)
 
