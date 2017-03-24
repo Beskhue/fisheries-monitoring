@@ -31,7 +31,7 @@ class Pipeline:
         
     def train_and_validation_generator_generator(self, balance = False):
         """
-        Generate train and validation generators of the training data, by
+        Generate infinite train and validation generators of the training data, by
         splitting the data into train and validation sets.
 
         :param balance: Boolean indicating whether classes should be balanced in the output.
