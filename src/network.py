@@ -47,7 +47,7 @@ class TransferLearning:
 
     def build(self, base_model_name, extended_model_name = None, summary = False):
         self.base_model_name = base_model_name
-        self.base_model = PRETRAINED_MODELS[self.base_model](weights='imagenet', include_top=False)
+        self.base_model = PRETRAINED_MODELS[self.base_model_name](weights='imagenet', include_top=False)
         if not extended_model_name:
             extended_model_name = 'ext_'+base_model_name
         self.extended_model_name = extended_model_name
