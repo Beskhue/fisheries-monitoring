@@ -11,6 +11,7 @@ import settings
 import scipy.misc
 import sklearn.model_selection
 import numpy as np
+from time import sleep
 from keras.preprocessing.image import ImageDataGenerator
 
 class Pipeline:
@@ -433,7 +434,10 @@ class DataLoader:
         m = []
         
         #print('Loading pre-cropped images from ',settings.CROPPED_TRAIN_DIR,'...')
-        only = 15    #For debugging
+        only = None    #For debugging
+        if only:
+            print("DEBUGGING")
+            time.sleep(0.8)
         for clss in classes:
             filenames = glob.glob(os.path.join(settings.CROPPED_TRAIN_DIR,clss,'*'))
             
