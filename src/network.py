@@ -46,7 +46,8 @@ class TransferLearning:
         self.generators.update(self.pipeline.augmented_train_and_validation_generator_generator(mini_batch_size = mini_batch_size))
 
     def build(self, base_model_name, extended_model_name = None, summary = False):
-        self.base_model = PRETRAINED_MODELS[base_model_name](weights='imagenet', include_top=False)
+        self.base_model = PRETRAINED_MODELS[self.base_model_name](weights='imagenet', include_top=False)
+        self.base_model = PRETRAINED_MODELS[self.base_model](weights='imagenet', include_top=False)
         if not extended_model_name:
             extended_model_name = 'ext_'+base_model_name
         self.extended_model_name = extended_model_name
