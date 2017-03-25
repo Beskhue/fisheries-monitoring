@@ -106,15 +106,15 @@ class TransferLearning:
         callbacks_list = [checkpoint]
         self.extended_model.fit_generator(
             generator = self.generators['train'],
-            steps_per_epoch = int(3299/mini_batch_size), 
+            steps_per_epoch = 5,#int(3299/mini_batch_size), 
             epochs = epochs,
             validation_data = self.generators['validate'],
-            validation_steps = int(0.3*3299/mini_batch_size),
+            validation_steps = 2,#int(0.3*3299/mini_batch_size),
             class_weight = class_count_idx,
             workers = 2,
             callbacks = callbacks_list)
     
-    def fine_tune_extended(self, epochs, mini_batch_size, input_weights_path, n_layers = 126):
+    def fine_tune_extended(self, epochs, mini_batch_size, input_weights_name, n_layers = 126):
         """
         Fine-tunes the extended model. It is assumed that the top part of the classifier has already been trained
         using the `train_top` method. It retrains the top part of the extended model and also some of the last layers
@@ -122,19 +122,19 @@ class TransferLearning:
         
         :param epochs: training epochs
         :param mini_batch_size: size of the mini batches
-        :param input_weights_path: name of the h5py weights file to be loaded as start point (output of `train_top`)
+        :param input_weights_name: name of the h5py weights file to be loaded as start point (output of `train_top`).
         :param n_layers: freeze every layer from the bottom of the extended model until the nth layer. Default is
         126 which is reasonable for the Xception model
         """
         #Load weights
-        self.extended_model.load_weights(input_weights_path)
+        self.extended_model.load_weights(os.path.join(settings.WEIGHTS_DIR,input_weights_name))
         #Freeze layers
-        for layer in extended_model.layers[:n_layers]:
+        for layer in self.extended_model.layers[:n_layers]:
            layer.trainable = False
-        for layer in extended_model.layers[n_layers:]:
+        for layer in self.extended_model.layers[n_layers:]:
            layer.trainable = True
-        extended_model.compile(optimizer=keras.optimizers.SGD(lr=0.0001, momentum=0.9), loss='sparse_categorical_crossentropy')
-        weights_name = self.extended_model_name+'_extended.hdf5'
+        self.extended_model.compile(optimizer=keras.optimizers.SGD(lr=0.0001, momentum=0.9), loss='sparse_categorical_crossentropy', metrics = ['accuracy'])
+        weights_name = self.extended_model_name+'_finetuned.hdf5'
         #Train
         self.train(epochs, mini_batch_size, weights_name)
         
@@ -156,7 +156,7 @@ class TransferLearning:
                 loss = 'sparse_categorical_crossentropy',
                 metrics = ['accuracy'])
                 
-        weights_name = self.extended_model_name+'_top.hdf5'
+        weights_name = self.extended_model_name+'_toptrained.hdf5'
         
         #Train
         self.train(epochs, mini_batch_size, weights_name)
