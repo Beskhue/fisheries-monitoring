@@ -13,6 +13,7 @@ import sklearn.model_selection
 import numpy as np
 from time import sleep
 from keras.preprocessing.image import ImageDataGenerator
+import time
 
 class Pipeline:
     def __init__(self, class_filter = [], f_middleware = lambda img, y, meta: img):

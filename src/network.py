@@ -29,7 +29,7 @@ class TransferLearning:
         self.extended_model = None
         self.extended_model_name = None
         self.generators = dict()
-        self.pipeline = pipeline.Pipeline()
+        self.pipeline = pipeline.Pipeline(class_filter = ["NoF"], f_middleware = lambda x: x)
         return
     
     
@@ -62,8 +62,42 @@ class TransferLearning:
         
         if summary:
             print(self.extended_model.summary())
+            
+    def train(self, epochs, mini_batch_size, weights_name):
+        
+        self.set_train_val_generators(mini_batch_size = mini_batch_size)        
+        # Create the pipeline, filtering away NoF and registering the crop and resize method
+        class_count = self.pipeline.class_count()
+        class_count_idx = {}
+        m = max(class_count.values())
+        print("Class weights:")
+        for clss in class_count:
+            class_count_idx[settings.CLASS_NAME_TO_INDEX_MAPPING[clss]] = float(m) / class_count[clss] / 10
+            print("\t",clss,"(",class_count[clss],"-",settings.CLASS_NAME_TO_INDEX_MAPPING[clss],") :",class_count_idx[settings.CLASS_NAME_TO_INDEX_MAPPING[clss]])
+        
+        weights_path = os.path.join(settings.WEIGHTS_DIR,weights_name)
+        checkpoint = keras.callbacks.ModelCheckpoint(weights_path, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
+        callbacks_list = [checkpoint]
+        self.extended_model.fit_generator(
+            generator = self.generators['train'],
+            steps_per_epoch = int(3299/mini_batch_size), 
+            epochs = epochs,
+            validation_data = self.generators['validate'],
+            validation_steps = int(0.3*3299/mini_batch_size),
+            class_weight = class_count_idx,
+            workers = 2,
+            callbacks = callbacks_list)
     
-    
+    def train_extended(self, epochs, mini_batch_size, input_weights_path):
+        self.extended_model.load_weights(input_weights_path)
+        for layer in extended_model.layers[:126]:
+           layer.trainable = False
+        for layer in extended_model.layers[126:]:
+           layer.trainable = True
+        extended_model.compile(optimizer=keras.optimizers.SGD(lr=0.0001, momentum=0.9), loss='sparse_categorical_crossentropy')
+        weights_name = self.extended_model_name+'_extended.hdf5'
+        self.train(epochs, mini_batch_size, weights_name)
+        
     def train_top(self, epochs, mini_batch_size):
         # first: train only the top layers (which were randomly initialized)
         # i.e. freeze all convolutional base_model layers
@@ -74,19 +108,9 @@ class TransferLearning:
                 optimizer = 'adam',
                 loss = 'sparse_categorical_crossentropy',
                 metrics = ['accuracy'])
-        
-        self.set_train_val_generators(mini_batch_size = mini_batch_size)
-        weights_path = os.path.join(settings.OUTPUT_DIR,self.extended_model_name+'_top.hdf5')
-        checkpoint = keras.callbacks.ModelCheckpoint(weights_path, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
-        callbacks_list = [checkpoint]
-        self.extended_model.fit_generator(
-            generator = self.generators['train'],
-            steps_per_epoch = int(3299/mini_batch_size), 
-            epochs = epochs,
-            validation_data = self.generators['validate'],
-            validation_steps = int(0.2*3299/mini_batch_size),
-            #workers = 2,
-            callbacks = callbacks_list)
+                
+        weights_name = self.extended_model_name+'_top.hdf5'
+        self.train(epochs, mini_batch_size, weights_name)
 
 def build():
     model = keras.models.Sequential()
