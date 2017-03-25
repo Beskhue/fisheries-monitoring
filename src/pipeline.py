@@ -13,9 +13,9 @@ import sklearn.model_selection
 import numpy as np
 from time import sleep
 from keras.preprocessing.image import ImageDataGenerator
-import time
 
 class Pipeline:
+
     def __init__(self, class_filter = [], f_middleware = lambda img, y, meta: img):
         """
         Pipeline initialization.
@@ -38,6 +38,7 @@ class Pipeline:
         Load the pre-cropped data
         """
         self.precropped_train_data = self.data_loader.get_precropped_train_images_and_classes()
+    
     def augmented_generator_generator(self, x, y, m, mini_batch_size):
         """
         Generates an augmented generator
@@ -49,26 +50,26 @@ class Pipeline:
         :return: An generator implementing data augmentation
         """ 
         datagen = ImageDataGenerator(
-                rescale = settings.AUGMENTATION_RESCALE,
-                rotation_range = settings.AUGMENTATION_ROTATION_RANGE,
-                shear_range = settings.AUGMENTATION_SHEAR_RANGE,
-                zoom_range = settings.AUGMENTATION_ZOOM_RANGE,
-                width_shift_range = settings.AUGMENTATION_WIDTH_SHIFT_RANGE,
-                height_shift_range = settings.AUGMENTATION_HEIGHT_SHIFT_RANGE,
-                horizontal_flip = settings.AUGMENTATION_HORIZONTAL_FLIP,
-                vertical_flip = settings.AUGMENTATION_VERTICAL_FLIP,
-                channel_shift_range = settings.AUGMENTATION_CHANNEL_SHIFT_RANGE
+                rescale = settings.RESCALE,
+                rotation_range = settings.ROTATION_RANGE,
+                shear_range = settings.SHEAR_RANGE,
+                zoom_range = settings.ZOOM_RANGE,
+                width_shift_range = settings.WIDTH_SHIFT_RANGE,
+                height_shift_range = settings.HEIGHT_SHIFT_RANGE,
+                horizontal_flip = settings.HORIZONTAL_FLIP,
+                vertical_flip = settings.VERTICAL_FLIP,
+                channel_shift_range = settings.CHANNEL_SHIFT_RANGE
                 )        
         
         augmented_generator = datagen.flow(x, y, mini_batch_size)
         #TODO integrate meta information to the flow
         
         return augmented_generator
-
+        
     def augmented_full_generator_generator(self, mini_batch_size = 128):
         """
         Use data augmentation to generate a generator for ALL the dataset.
-        :param mini_batch_size: size of the mini-batches
+        :mini_batch_size size of the mini-batches
 
         :return: A dictionary with the full set generator in 'full'
         """  
@@ -80,8 +81,8 @@ class Pipeline:
         
         return {
             'full': self.augmented_generator_generator(x, y, meta, mini_batch_size)
-        }
-        
+            }
+                
     def augmented_train_and_validation_generator_generator(self, mini_batch_size = 128):
         """
         Use data augmentation to generate train and validation generators of the training data, by
@@ -134,26 +135,7 @@ class Pipeline:
             'validate': validate_generator()
             }
 
-    def train_and_validation_mini_batch_generator_generator(self, mini_batch_size = 128):
-        """
-        Generate train and validation mini batch generators of the training data, by
-        splitting the data into train and validation sets.
 
-        :param mini_batch_size: The size of the mini-batches
-        :return: A dictionary with the training set mini-batch generator in 'train', 
-                 and the validation set mini-batch generator in 'validate'
-        """  
-        x_train, x_validate, y_train, y_validate, meta_train, meta_validate = sklearn.model_selection.train_test_split(
-            self.train_data['x'], 
-            self.train_data['y'], 
-            self.train_data['meta'],
-            test_size = 0.2, 
-            stratify = self.train_data['y'])
-
-        return {
-            'train': self.mini_batch_generator(x_train, y_train, meta_train, mini_batch_size = mini_batch_size),
-            'validate': self.mini_batch_generator(x_validate, y_validate, meta_validate, mini_batch_size = mini_batch_size)
-            }
 
     def mini_batch_generator(self, *x, mini_batch_size):
         """
@@ -192,39 +174,6 @@ class Pipeline:
         :return: Number of unique samples
         """
         return len(self.train_data['y'])
-
-    def class_count(self):
-        """
-        Count the number of occurrences of each class.
-
-        :return: Dictionary of class counts
-        """
-
-        class_count = {}
-        for y in self.train_data['y']:
-            if y not in class_count:
-                class_count[y] = 0
-
-            class_count[y] += 1
-
-        return class_count
-
-    def __init__(self, class_filter = [], f_middleware = lambda img, y, meta: img):
-        """
-        Pipeline initialization.
-
-        :param class_filter: A list of classes to ignore (i.e., they won't be loaded)
-        :param f_middleware: A function to execute on the loaded raw image, its class and the meta-inform
-        """
-        self.f_middleware = f_middleware
-        self.data_loader = DataLoader(class_filter)
-        self.load()
-
-    def load(self):
-        """
-        Load the data
-        """
-        self.train_data = self.data_loader.get_train_images_and_classes(self.f_middleware)
         
     def train_and_validation_generator_generator(self, balance = False):
         """
@@ -348,13 +297,6 @@ class Pipeline:
         if len(output) > 0:
             yield zip(*output)
 
-    def num_unique_samples(self):
-        """
-        Count the number of unique samples in the training (and validation) data
-
-        :return: Number of unique samples
-        """
-        return len(self.train_data['y'])
 
     def class_count(self):
         """
@@ -371,6 +313,7 @@ class Pipeline:
             class_count[y] += 1
 
         return class_count
+
 
 class DataLoader:
     """
@@ -435,15 +378,11 @@ class DataLoader:
         m = []
         
         #print('Loading pre-cropped images from ',settings.CROPPED_TRAIN_DIR,'...')
-        only = None    #For debugging
-        if only:
-            print("DEBUGGING")
-            time.sleep(0.8)
         for clss in classes:
             filenames = glob.glob(os.path.join(settings.CROPPED_TRAIN_DIR,clss,'*'))
             
             #print("Loading ",len(fpaths),clss)
-            for filename in filenames[:only]:
+            for filename in filenames:
                 name = self.get_file_name_part(filename)
 
                 meta = {}
