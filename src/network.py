@@ -32,13 +32,6 @@ class TransferLearning:
         self.pipeline = pipeline.Pipeline(class_filter = ["NoF"], f_middleware = lambda x: x)
         return
     
-    
-    def base_model(self, model_name, summary = False):
-        if summary:
-            print(model.summary())
-        self.pretrained_model = PRETRAINED_MODELS[model_name](weights='imagenet', include_top=False)
-        self.pretrained_model_name = model_name
-    
     def set_full_generator(self, mini_batch_size):
         self.generators.update(self.pipeline.augmented_full_generator_generator(mini_batch_size = mini_batch_size))
     
