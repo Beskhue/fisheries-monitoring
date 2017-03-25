@@ -22,8 +22,11 @@ PRETRAINED_MODELS = {
     "resnet":         ResNet50
 }
 class TransferLearning:
-    
+	
     def __init__(self):
+        """
+        TransferLearning initialization.
+        """
         self.base_model = None
         self.base_model_name = None
         self.extended_model = None
@@ -33,12 +36,33 @@ class TransferLearning:
         return
     
     def set_full_generator(self, mini_batch_size):
+        """
+        Add a data augmented generator over all dataset (without train
+        validation splitting) to the generators dictionary
+        
+        :param mini_batch_size: size of the mini batches
+        """
         self.generators.update(self.pipeline.augmented_full_generator_generator(mini_batch_size = mini_batch_size))
     
     def set_train_val_generators(self, mini_batch_size):
+        """
+        Add the train and validation data augmented generators to the 
+        generators dictionary
+        
+        :param mini_batch_size: size of the mini batches
+        """
         self.generators.update(self.pipeline.augmented_train_and_validation_generator_generator(mini_batch_size = mini_batch_size))
 
     def build(self, base_model_name, extended_model_name = None, summary = False):
+        """
+        Build an extended model. A base model is first loaded disregarding its last layers and afterwards
+        some new layers are stacked on top so the resulting model would be applicable to the
+        fishering-monitoring problem
+        
+        :param base_model_name: model name to load and use as base model (`"vgg16"`,`"vgg19"`,`"inception"`,`"xception"`,`"resnet"`).
+        :param extended_model_name: name for the extended model. It will affect only to the weights file to write on disk
+        :param summary: whether to print the summary of the extended model
+        """
         self.base_model_name = base_model_name
         self.base_model = PRETRAINED_MODELS[self.base_model_name](weights='imagenet', include_top=False)
         if not extended_model_name:
@@ -57,6 +81,14 @@ class TransferLearning:
             print(self.extended_model.summary())
             
     def train(self, epochs, mini_batch_size, weights_name):
+        """
+        Train the (previously loaded/set) extended model. It is assumed that the `extended_model` object
+        has been already configured (aka which layers of it are frozen and which not)
+        
+        :param epochs: training epochs
+        :param mini_batch_size: size of the mini batches
+        :param weights_name: name for the h5py weights file to be written in the output folder
+        """
         
         self.set_train_val_generators(mini_batch_size = mini_batch_size)        
         # Create the pipeline, filtering away NoF and registering the crop and resize method
@@ -69,6 +101,7 @@ class TransferLearning:
             print("\t",clss,"(",class_count[clss],"-",settings.CLASS_NAME_TO_INDEX_MAPPING[clss],") :",class_count_idx[settings.CLASS_NAME_TO_INDEX_MAPPING[clss]])
         
         weights_path = os.path.join(settings.WEIGHTS_DIR,weights_name)
+        #Save best validation accuracy model during training
         checkpoint = keras.callbacks.ModelCheckpoint(weights_path, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
         callbacks_list = [checkpoint]
         self.extended_model.fit_generator(
@@ -81,19 +114,40 @@ class TransferLearning:
             workers = 2,
             callbacks = callbacks_list)
     
-    def train_extended(self, epochs, mini_batch_size, input_weights_path):
+    def fine_tune_extended(self, epochs, mini_batch_size, input_weights_path, n_layers = 126):
+        """
+        Fine-tunes the extended model. It is assumed that the top part of the classifier has already been trained
+        using the `train_top` method. It retrains the top part of the extended model and also some of the last layers
+        of the base model with a low learning rate.
+        
+        :param epochs: training epochs
+        :param mini_batch_size: size of the mini batches
+        :param input_weights_path: name of the h5py weights file to be loaded as start point (output of `train_top`)
+        :param n_layers: freeze every layer from the bottom of the extended model until the nth layer. Default is
+        126 which is reasonable for the Xception model
+        """
+        #Load weights
         self.extended_model.load_weights(input_weights_path)
-        for layer in extended_model.layers[:126]:
+        #Freeze layers
+        for layer in extended_model.layers[:n_layers]:
            layer.trainable = False
-        for layer in extended_model.layers[126:]:
+        for layer in extended_model.layers[n_layers:]:
            layer.trainable = True
         extended_model.compile(optimizer=keras.optimizers.SGD(lr=0.0001, momentum=0.9), loss='sparse_categorical_crossentropy')
         weights_name = self.extended_model_name+'_extended.hdf5'
+        #Train
         self.train(epochs, mini_batch_size, weights_name)
         
     def train_top(self, epochs, mini_batch_size):
-        # first: train only the top layers (which were randomly initialized)
-        # i.e. freeze all convolutional base_model layers
+        """
+        Trains the top part of the extended model. In other words it trains the extended model but freezing every
+        layer of the base model.
+        
+        :param epochs: training epochs
+        :param mini_batch_size: size of the mini batches
+        """
+    
+        #Freeze all convolutional base_model layers
         for layer in self.base_model.layers:
             layer.trainable = False
             
@@ -103,6 +157,8 @@ class TransferLearning:
                 metrics = ['accuracy'])
                 
         weights_name = self.extended_model_name+'_top.hdf5'
+        
+        #Train
         self.train(epochs, mini_batch_size, weights_name)
 
 def build():
