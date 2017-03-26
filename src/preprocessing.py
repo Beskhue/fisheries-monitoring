@@ -53,7 +53,7 @@ def hist_match(source, template):
         s_quantiles /= s_quantiles[-1]
         
         # unpack template
-        t_quantiles, t_values = templates[d]
+        t_quantiles, t_values = template[d]
 
         # interpolate linearly to find the pixel values in the template image
         # that correspond most closely to the quantiles in the source image
