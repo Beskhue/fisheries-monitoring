@@ -2,15 +2,17 @@ import collections
 import numpy as np
 import skimage.color
 
-DEFAULT_HIST_MATCH_TEMPLATES = [24,34,56,2017,3003] # picked from different boats and perspectives
+DEFAULT_HIST_MATCH_TEMPLATES = ['img_01678', 'img_06382', 'img_04391', 'img_04347', 'img_05883'] # picked from different boats and perspectives
 
 # Based on http://stackoverflow.com/questions/32655686/histogram-matching-of-two-images-in-python-2-x
-def build_template(train_imgs, template_idxs=DEFAULT_HIST_MATCH_TEMPLATES):
+def build_template(train_imgs, train_meta, template_files=DEFAULT_HIST_MATCH_TEMPLATES):
     """
     Build histogram matching template, to be used as argument for hist_match.
     :param train_imgs: pipeline.DataLoader().get_train_images_and_classes()['x']
     :param template_idxs: images to be used as templates, as indices into train_imgs
     """
+    template_idxs = [i for i in range(len(train_imgs)) if train_meta[i]['filename'] in template_files]
+    
     templates = []
     for d in range(3):
         # build template histogram
