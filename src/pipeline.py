@@ -50,15 +50,15 @@ class Pipeline:
         :return: An generator implementing data augmentation
         """ 
         datagen = ImageDataGenerator(
-                rescale = settings.RESCALE,
-                rotation_range = settings.ROTATION_RANGE,
-                shear_range = settings.SHEAR_RANGE,
-                zoom_range = settings.ZOOM_RANGE,
-                width_shift_range = settings.WIDTH_SHIFT_RANGE,
-                height_shift_range = settings.HEIGHT_SHIFT_RANGE,
-                horizontal_flip = settings.HORIZONTAL_FLIP,
-                vertical_flip = settings.VERTICAL_FLIP,
-                channel_shift_range = settings.CHANNEL_SHIFT_RANGE
+                rescale = settings.AUGMENTATION_RESCALE,
+                rotation_range = settings.AUGMENTATION_ROTATION_RANGE,
+                shear_range = settings.AUGMENTATION_SHEAR_RANGE,
+                zoom_range = settings.AUGMENTATION_ZOOM_RANGE,
+                width_shift_range = settings.AUGMENTATION_WIDTH_SHIFT_RANGE,
+                height_shift_range = settings.AUGMENTATION_HEIGHT_SHIFT_RANGE,
+                horizontal_flip = settings.AUGMENTATION_HORIZONTAL_FLIP,
+                vertical_flip = settings.AUGMENTATION_VERTICAL_FLIP,
+                channel_shift_range = settings.AUGMENTATION_CHANNEL_SHIFT_RANGE
                 )        
         
         augmented_generator = datagen.flow(x, y, mini_batch_size)
