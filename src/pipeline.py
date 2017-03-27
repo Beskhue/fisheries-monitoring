@@ -98,8 +98,10 @@ class Pipeline:
             self.precropped_train_data['y'], 
             self.precropped_train_data['meta'],
             test_size = 0.2, 
-            stratify = self.precropped_train_data['y'])
-    
+            stratify = self.precropped_train_data['y'],
+            random_state = 7)
+        with open(os.path.join(settings.DATA_DIR,'validation_precropped_meta_set.txt'),'w') as fp:
+            fp.write(str(meta_validate))
         return {
             'train': self.augmented_generator_generator(x_train, y_train, meta_train, mini_batch_size),
             'validate': self.augmented_generator_generator(x_validate, y_validate, meta_validate, mini_batch_size)
@@ -118,8 +120,10 @@ class Pipeline:
             self.train_data['y'], 
             self.train_data['meta'],
             test_size = 0.2, 
-            stratify = self.train_data['y'])
-
+            stratify = self.train_data['y'],
+            random_state = 7)
+        with open(os.path.join(settings.DATA_DIR,'validation_meta_set.txt'),'w') as fp:
+            fp.write(str(meta_validate))
         def train_generator():
             while 1:
                 for x, y, meta in zip(x_train, y_train, meta_train):
@@ -343,7 +347,6 @@ class DataLoader:
         :return: Dictionary containing the bounding boxes.
         """
         classes = self.get_classes()
-
         bounding_boxes = {}
 
         for clss in classes:
@@ -388,7 +391,7 @@ class DataLoader:
                 meta = {}
                 meta['filename'] = name
                 meta['class'] = clss
-                m.append(m)
+                m.append(meta)
                 im = self.load(filename)[:299,:299,:]
                 x.append(im.reshape(-1,299,299,3))
                 y.append(settings.CLASS_NAME_TO_INDEX_MAPPING[clss])
