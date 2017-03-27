@@ -102,14 +102,19 @@ class TransferLearning:
         
         weights_path = os.path.join(settings.WEIGHTS_DIR,weights_name)
         #Save best validation accuracy model during training
-        checkpoint = keras.callbacks.ModelCheckpoint(weights_path, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
-        callbacks_list = [checkpoint]
+        checkpoint = keras.callbacks.ModelCheckpoint(weights_path, monitor='val_acc', verbose=1, save_best_only=False, mode='max')
+        tf_logs = keras.callbacks.TensorBoard(
+            log_dir=settings.TB_LOGS_DIR,
+            histogram_freq=1,
+            write_graph=True,
+            write_images=True)
+        callbacks_list = [checkpoint, tf_logs]
         self.extended_model.fit_generator(
             generator = self.generators['train'],
-            steps_per_epoch = int(3299/mini_batch_size), 
+            steps_per_epoch = 10,#int(3299/mini_batch_size), 
             epochs = epochs,
             validation_data = self.generators['validate'],
-            validation_steps = int(0.3*3299/mini_batch_size),
+            validation_steps = 2,#int(0.3*3299/mini_batch_size),
             class_weight = class_count_idx,
             workers = 2,
             callbacks = callbacks_list)
