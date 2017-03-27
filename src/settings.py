@@ -14,9 +14,8 @@ OUTPUT_DIR = os.path.join(ROOT_DIR, "output")
 
 ## Input directories
 
-#TRAIN_DIR = os.path.join(DATA_DIR, "train")
+TRAIN_DIR = os.path.join(DATA_DIR, "train")
 CROPPED_TRAIN_DIR = os.path.join(DATA_DIR, "cropped_train")
-TRAIN_DIR = CROPPED_TRAIN_DIR
 TRAIN_BOUNDING_BOXES_DIR = os.path.join(DATA_DIR, "bounding_boxes")
 TEST_DIR = os.path.join(DATA_DIR, "test")
 
