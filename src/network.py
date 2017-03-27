@@ -111,10 +111,10 @@ class TransferLearning:
         callbacks_list = [checkpoint, tf_logs]
         self.extended_model.fit_generator(
             generator = self.generators['train'],
-            steps_per_epoch = 10,#int(3299/mini_batch_size), 
+            steps_per_epoch = int(3299/mini_batch_size), 
             epochs = epochs,
             validation_data = self.generators['validate'],
-            validation_steps = 2,#int(0.3*3299/mini_batch_size),
+            validation_steps = int(0.3*3299/mini_batch_size),
             class_weight = class_count_idx,
             workers = 2,
             callbacks = callbacks_list)
