@@ -458,7 +458,7 @@ class DataLoader:
         return {'x':x, 'y':y, 'meta': m}
     
     
-    def get_train_images_and_classes(self, f_middleware):
+    def get_train_images_and_classes(self, f_middleware = lambda x: x):
         """
         Method to load the train cases.
 
