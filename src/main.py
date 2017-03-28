@@ -1,8 +1,7 @@
-from clize import run
+import os
 import pprint
+from clize import run
 import pipeline
-import darknet
-import network
 import settings
 
 def example():
@@ -60,6 +59,8 @@ def train_network():
     Train a neural net using the pipeline.
     """
     
+    import network
+
     network.train()
     input("Press Enter to continue...")
 
@@ -67,6 +68,8 @@ def train_top_xception_network():
     """
     Train the top of the extended xception network.
     """
+
+    import network
 
     tl = network.TransferLearning()
 
@@ -80,6 +83,8 @@ def fine_tune_xception_network():
     Fine-tune the extended xception network. To do this, first the top
     of the extended xception network must have been trained already.
     """
+
+    import network
 
     tl = network.TransferLearning()
 
@@ -97,9 +102,80 @@ def convert_annotations_to_darknet(single_class = False):
     single_class: Whether to collapse fish classes to a single class (i.e., all classes become "Fish")
     """
     
+    import darknet
+
     dl = pipeline.DataLoader()
     train_imgs = dl.get_train_images_and_classes()
     darknet.save_annotations_for_darknet(train_imgs, single_class = single_class)
+
+def crop_images(histogram_matching = True):
+    """
+    Crop images in the data using the bounding box annotations.
+
+    Creates one crop for each bounding box.
+
+    :param histogram_matching: Whether to apply histogram matching on the night-vision images.
+    """
+
+    import preprocessing
+    from skimage.io import imsave
+
+    print("Loading images...")
+
+    # Load all images
+    dl = pipeline.DataLoader()
+    data = dl.get_train_images_and_classes()
+
+    imgs = data['x']
+    ys = data['y']
+    metas = data['meta']
+
+    print("Loaded %s images." % len(imgs))
+
+    # Prepare for histogram matching if we need it
+    if histogram_matching:
+        import colour
+        print("Applying histogram matching. Preparing template...")
+        template = preprocessing.build_template(imgs, metas)
+        print("Template prepared")
+
+
+    print("Cropping %s input images to %s..." % (len(imgs), settings.CROPS_OUTPUT_DIR))
+
+    classes_encountered = []
+    n = 0
+
+    for img, meta in zip(imgs, metas):
+        # Load image
+        img = img()
+
+        if "bounding_boxes" not in meta:
+            # No bounding boxes, so skip this image
+            continue
+
+        if histogram_matching:
+            if colour.is_night_vision(img):
+                # We are performing histogram matching and this image is night vision,
+                # so histogram match it
+                img = preprocessing.hist_match(img, template)
+
+        # For each crop...
+        for crop, clss in zip(*preprocessing.crop(img, meta["bounding_boxes"])):
+            n += 1
+            class_dir = os.path.join(settings.CROPS_OUTPUT_DIR, clss)
+            file_path = os.path.join(class_dir, "img_%s.jpg" % n)
+
+            # Create directory for class if it does not exist yet
+            if clss not in classes_encountered:
+                if not os.path.exists(class_dir):
+                    os.makedirs(class_dir)
+                classes_encountered.append(clss)
+
+            # Save the crop to file
+            imsave(file_path, crop)
+
+    print("All images cropped.")
+
 
 if __name__ == "__main__":
     run(example,
@@ -107,4 +183,5 @@ if __name__ == "__main__":
         train_network,
         train_top_xception_network,
         fine_tune_xception_network,
-        convert_annotations_to_darknet)
+        convert_annotations_to_darknet,
+        crop_images)
