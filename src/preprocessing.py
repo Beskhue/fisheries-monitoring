@@ -1,6 +1,8 @@
 import collections
 import numpy as np
+import scipy.linalg
 import skimage.color
+import skimage.util
 
 DEFAULT_HIST_MATCH_TEMPLATES = ['img_01678', 'img_06382', 'img_04391', 'img_04347', 'img_05883'] # picked from different boats and perspectives
 
@@ -62,3 +64,21 @@ def hist_match(source, template):
     
     return (255*skimage.color.lab2rgb(source)).astype(np.uint8)
 
+# From scikit image github
+yuv_from_rgb = np.array([[ 0.299     ,  0.587     ,  0.114      ],
+                         [-0.14714119, -0.28886916,  0.43601035 ],
+                         [ 0.61497538, -0.51496512, -0.10001026 ]])
+rgb_from_yuv = scipy.linalg.inv(yuv_from_rgb)
+
+def clamp(arr):
+    arr[arr < 0] = 0
+    arr[arr > 1] = 1
+    return arr
+
+def rgb2yuv(arr):
+    arr = skimage.util.dtype.img_as_float(arr)
+    return clamp(np.dot(arr, yuv_from_rgb.T.copy()))
+
+def yuv2rgb(arr):
+    arr = skimage.util.dtype.img_as_float(arr)
+    return clamp(np.dot(arr, rgb_from_yuv.T.copy()))
