@@ -318,6 +318,60 @@ class Pipeline:
 
         return class_count
 
+    def class_weights(self):
+        """
+        Compute the class weight of each class such that the average weight
+        (taking into account the frequency of each class) is 1.
+
+        For example, if all classes have the same number of observations,
+        they are all weighted 1. If we have three classes where class 1 has 
+        150 observations, class 2 has 40 observations, and class 3 has 10 
+        observations, they get the following weights:
+
+        Class 1: (200/150)/3 = 0.444
+        Class 2: (200/50)/3 = 1.333
+        Class 3: (200/10)/3  = 6.667
+
+        :return: The class weight of each class.
+        """
+
+        class_count = self.class_count()
+        class_weight = {}
+        num_samples = self.num_unique_samples()
+        num_classes = len(class_count)
+        
+        for clss in class_count:
+            class_weight[settings.CLASS_NAME_TO_INDEX_MAPPING[clss]] = float(num_samples) / class_count[clss] / num_classes
+
+        return class_weight
+
+    def class_reciprocal_weights(self, factor = None):
+        """
+        Compute the class weight of each class based on the number of occurrences
+        of the most common class.
+
+        The weight is calculated such that the classes get a weight of:
+            (count of most-common class) / (class count)
+        So the most-common class gets a weight of 1, and other classes get a weight
+        higher than 1 (before multiplying by the factor).
+
+        :param factor: The factor with which the multiply the weights. If not set, 
+                       it is 1 / (number of classes).
+        :return: The class weight based on the number of occurrences of the most
+                 common class.
+        """
+
+        class_count = self.class_count()
+        class_weight = {}
+        m = max(class_count.values())
+
+        if factor == None:
+            factor = 1.0 / len(class_count)
+
+        for clss in class_count:
+            class_weight[settings.CLASS_NAME_TO_INDEX_MAPPING[clss]] = float(m) / class_count[clss] * factor
+
+        return class_weight
 
 class DataLoader:
     """

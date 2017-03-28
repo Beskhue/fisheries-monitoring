@@ -100,12 +100,7 @@ class TransferLearning:
         self.set_train_val_generators(mini_batch_size = mini_batch_size)
            
         # Calculate class weights
-        class_count = self.pipeline.class_count()
-        class_count_idx = {}
-        m = max(class_count.values())
-        
-        for clss in class_count:
-            class_count_idx[settings.CLASS_NAME_TO_INDEX_MAPPING[clss]] = float(m) / class_count[clss] / 10
+        class_weights = self.pipeline.class_reciprocal_weights()
 
         # Save the model with best validation accuracy during training
         weights_path = os.path.join(settings.WEIGHTS_DIR, weights_name)
@@ -131,7 +126,7 @@ class TransferLearning:
             epochs = epochs,
             validation_data = self.generators['validate'],
             validation_steps = int(0.3*3299/mini_batch_size),
-            class_weight = class_count_idx,
+            class_weight = class_weights,
             workers = 2,
             callbacks = callbacks_list)
     
@@ -277,11 +272,8 @@ def train(epochs = 100):
 
     # Create the pipeline, filtering away NoF and registering the crop and resize method
     pl = pipeline.Pipeline(class_filter = ["NoF"], f_middleware = crop_and_resize)
-    class_count = pl.class_count()
-    class_count_idx = {}
-    m = max(class_count.values())
-    for clss in class_count:
-        class_count_idx[settings.CLASS_NAME_TO_INDEX_MAPPING[clss]] = float(m) / class_count[clss] / 10
+   
+    class_weights = pl.class_weights()
 
     generators = pl.train_and_validation_generator_generator()
 
@@ -306,7 +298,7 @@ def train(epochs = 100):
             batch_generator(generators['train']),
             steps_per_epoch = 20, 
             epochs = 200,
-            class_weight = class_count_idx,
+            class_weight = class_weights,
             validation_data = batch_generator(generators['validate']),
             validation_steps = 2,
             workers = 2)
