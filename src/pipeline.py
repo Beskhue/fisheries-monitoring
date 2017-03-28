@@ -462,7 +462,8 @@ class DataLoader:
 
         :param f_middleware: A function to execute on the loaded raw image, its class and the meta-information
                              right after loading it. Should return the (pre-processed) image.
-        :return: A dictionary containing the list of classes (y) and list of (function to load) images (x)
+        :return: A dictionary containing the list of classes (y) and list of (function to load) images (x), as well
+                 as a list of meta information for each image (meta).
         """
 
         classes = self.get_classes()
