@@ -12,7 +12,6 @@ import scipy.misc
 import sklearn.model_selection
 import numpy as np
 from time import sleep
-from keras.preprocessing.image import ImageDataGenerator
 
 class Pipeline:
 
@@ -49,6 +48,9 @@ class Pipeline:
 
         :return: An generator implementing data augmentation
         """ 
+
+        from keras.preprocessing.image import ImageDataGenerator
+
         datagen = ImageDataGenerator(
                 rescale = settings.AUGMENTATION_RESCALE,
                 rotation_range = settings.AUGMENTATION_ROTATION_RANGE,
