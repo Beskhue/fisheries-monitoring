@@ -100,7 +100,7 @@ def crop(img, bounding_boxes, out_size = (300, 300), zoom_factor = 0.7):
 
     (size_y, size_x, channels) = img.shape
 
-    zoom_out_factor = 1 / zoom_factor;
+    zoom_out_factor = 1 / zoom_factor
 
     crops = []
 
