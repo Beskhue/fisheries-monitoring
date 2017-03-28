@@ -62,7 +62,33 @@ def train_network():
     
     network.train()
     input("Press Enter to continue...")
-    
+
+def train_top_xception_network():
+    """
+    Train the top of the extended xception network.
+    """
+
+    tl = network.TransferLearning()
+
+    tl.build('xception', summary = False)
+    tl.train_top(
+        epochs = 70,
+        mini_batch_size = 32)
+
+def fine_tune_xception_network():
+    """
+    Fine-tune the extended xception network. To do this, first the top
+    of the extended xception network must have been trained already.
+    """
+
+    tl = network.TransferLearning()
+
+    tl.build('xception', summary = False)
+    tl.fine_tune_extended(
+        epochs = 70,
+        mini_batch_size = 32,
+        input_weights_name = "ext_xception_toptrained.hdf5",
+        n_layers = 125)
 
 def convert_annotations_to_darknet(single_class = False):
     """
@@ -76,4 +102,9 @@ def convert_annotations_to_darknet(single_class = False):
     darknet.save_annotations_for_darknet(train_imgs, single_class = single_class)
 
 if __name__ == "__main__":
-    run(example, example_crop_plot, train_network, convert_annotations_to_darknet)
+    run(example,
+        example_crop_plot,
+        train_network,
+        train_top_xception_network,
+        fine_tune_xception_network,
+        convert_annotations_to_darknet)
