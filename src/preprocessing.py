@@ -91,7 +91,10 @@ def crop(img, bounding_boxes, out_size = (300, 300), zoom_factor = 0.7):
     :param img: The image to generate the crops for
     :param bounding_boxes: A list of dictionaries of the form x, y, width, height, and optionally class.
     :param out_size: The size of the output crops
-    :param zoom_factor: The factor with which to zoom out the crop (relative to the fish size)
+    :param zoom_factor: The factor with which to zoom in to the crop (relative to the fish size)
+                        == 1: no zoom
+                        >  1: zoom in
+                        <  1: zoom out
     :return: A list of crops (and potentially a list of classes for each crop, if classes were given in the input)
     """
 
