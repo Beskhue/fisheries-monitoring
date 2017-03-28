@@ -15,11 +15,11 @@ import numpy as np
 from threadsafe import threadsafe_generator
 
 PRETRAINED_MODELS = {
-    "vgg16":         VGG16,
-    "vgg19":         VGG19,
-    "inception":     InceptionV3,
-    "xception":     Xception,
-    "resnet":         ResNet50
+    "vgg16":     VGG16,
+    "vgg19":     VGG19,
+    "inception": InceptionV3,
+    "xception":  Xception,
+    "resnet":    ResNet50
 }
 class TransferLearning:
 	
@@ -31,9 +31,8 @@ class TransferLearning:
         self.base_model_name = None
         self.extended_model = None
         self.extended_model_name = None
-        self.generators = dict()
-        self.pipeline = pipeline.Pipeline(class_filter = ["NoF"], f_middleware = lambda x: x)
-        return
+        self.generators = {}
+        self.pipeline = pipeline.Pipeline(class_filter = ["NoF"])
     
     def set_full_generator(self, mini_batch_size):
         """
@@ -63,51 +62,68 @@ class TransferLearning:
         :param extended_model_name: name for the extended model. It will affect only to the weights file to write on disk
         :param summary: whether to print the summary of the extended model
         """
+
+        # Set the base model configuration and extended model name
         self.base_model_name = base_model_name
-        self.base_model = PRETRAINED_MODELS[self.base_model_name](weights='imagenet', include_top=False)
+        self.base_model = PRETRAINED_MODELS[self.base_model_name](weights = 'imagenet', include_top = False)
         if not extended_model_name:
-            extended_model_name = 'ext_'+base_model_name
+            extended_model_name = 'ext_' + base_model_name
+
         self.extended_model_name = extended_model_name
-        print("Building ",self.extended_model_name," taking ",self.base_model_name," as base model...")
+
+        # Extend the base model
+        print("Building %s using %s as the base model..." % (self.extended_model_name, self.base_model_name))
+
         x = self.base_model.output
         x = keras.layers.GlobalAveragePooling2D()(x)
         x = keras.layers.Dense(1024, activation='relu')(x)
         predictions = keras.layers.Dense(7, activation='softmax')(x)
 
-        # this is the model we will train
+        # This is the model we will train:
         self.extended_model = keras.models.Model(input=self.base_model.input, output=predictions)
         
+        print("Done building the model.")
+
         if summary:
             print(self.extended_model.summary())
             
     def train(self, epochs, mini_batch_size, weights_name):
         """
         Train the (previously loaded/set) extended model. It is assumed that the `extended_model` object
-        has been already configured (aka which layers of it are frozen and which not)
+        has been already configured (such as which layers of it are frozen and which not)
         
-        :param epochs: training epochs
+        :param epochs: the number of training epochs
         :param mini_batch_size: size of the mini batches
         :param weights_name: name for the h5py weights file to be written in the output folder
         """
         
-        self.set_train_val_generators(mini_batch_size = mini_batch_size)        
-        # Create the pipeline, filtering away NoF and registering the crop and resize method
+        self.set_train_val_generators(mini_batch_size = mini_batch_size)
+           
+        # Calculate class weights
         class_count = self.pipeline.class_count()
         class_count_idx = {}
         m = max(class_count.values())
-        print("Class weights:")
+        
         for clss in class_count:
             class_count_idx[settings.CLASS_NAME_TO_INDEX_MAPPING[clss]] = float(m) / class_count[clss] / 10
-            print("\t",clss,"(",class_count[clss],"-",settings.CLASS_NAME_TO_INDEX_MAPPING[clss],") :",class_count_idx[settings.CLASS_NAME_TO_INDEX_MAPPING[clss]])
-        
-        weights_path = os.path.join(settings.WEIGHTS_DIR,weights_name)
-        #Save best validation accuracy model during training
-        checkpoint = keras.callbacks.ModelCheckpoint(weights_path, monitor='val_acc', verbose=1, save_best_only=False, mode='max')
+
+        # Save the model with best validation accuracy during training
+        weights_path = os.path.join(settings.WEIGHTS_DIR, weights_name)
+        checkpoint = keras.callbacks.ModelCheckpoint(
+            weights_path,
+            monitor = 'val_acc',
+            verbose=1,
+            save_best_only = False,
+            mode = 'max')
+                 
+        # Output tensorboard logs
         tf_logs = keras.callbacks.TensorBoard(
-            log_dir=settings.TB_LOGS_DIR,
-            histogram_freq=1,
-            write_graph=True,
-            write_images=True)
+            log_dir = settings.TENSORBOARD_LOGS_DIR,
+            histogram_freq = 1,
+            write_graph = True,
+            write_images = True)
+
+        # Train
         callbacks_list = [checkpoint, tf_logs]
         self.extended_model.fit_generator(
             generator = self.generators['train'],
@@ -125,22 +141,27 @@ class TransferLearning:
         using the `train_top` method. It retrains the top part of the extended model and also some of the last layers
         of the base model with a low learning rate.
         
-        :param epochs: training epochs
+        :param epochs: the number of training epochs
         :param mini_batch_size: size of the mini batches
         :param input_weights_name: name of the h5py weights file to be loaded as start point (output of `train_top`).
         :param n_layers: freeze every layer from the bottom of the extended model until the nth layer. Default is
         126 which is reasonable for the Xception model
         """
-        #Load weights
+
+        # Load weights
         self.extended_model.load_weights(os.path.join(settings.WEIGHTS_DIR,input_weights_name))
-        #Freeze layers
+
+        # Freeze layers
         for layer in self.extended_model.layers[:n_layers]:
            layer.trainable = False
+
         for layer in self.extended_model.layers[n_layers:]:
            layer.trainable = True
+
         self.extended_model.compile(optimizer=keras.optimizers.SGD(lr=0.0001, momentum=0.9), loss='sparse_categorical_crossentropy', metrics = ['accuracy'])
         weights_name = self.extended_model_name+'_finetuned.hdf5'
-        #Train
+        
+        # Train
         self.train(epochs, mini_batch_size, weights_name)
         
     def train_top(self, epochs, mini_batch_size):
@@ -152,7 +173,7 @@ class TransferLearning:
         :param mini_batch_size: size of the mini batches
         """
     
-        #Freeze all convolutional base_model layers
+        # Freeze all convolutional base_model layers
         for layer in self.base_model.layers:
             layer.trainable = False
             
@@ -163,7 +184,7 @@ class TransferLearning:
                 
         weights_name = self.extended_model_name+'_toptrained.hdf5'
         
-        #Train
+        # Train
         self.train(epochs, mini_batch_size, weights_name)
 
 def build():

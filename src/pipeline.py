@@ -16,7 +16,7 @@ from keras.preprocessing.image import ImageDataGenerator
 
 class Pipeline:
 
-    def __init__(self, class_filter = [], f_middleware = lambda img, y, meta: img):
+    def __init__(self, class_filter = [], f_middleware = lambda x: x):
         """
         Pipeline initialization.
 
