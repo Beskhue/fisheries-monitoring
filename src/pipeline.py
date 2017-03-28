@@ -15,7 +15,7 @@ from time import sleep
 
 class Pipeline:
 
-    def __init__(self, class_filter = [], f_middleware = lambda x: x):
+    def __init__(self, class_filter = [], f_middleware = lambda *x: x[0]):
         """
         Pipeline initialization.
 
@@ -458,7 +458,7 @@ class DataLoader:
         return {'x':x, 'y':y, 'meta': m}
     
     
-    def get_train_images_and_classes(self, f_middleware = lambda x: x):
+    def get_train_images_and_classes(self, f_middleware = lambda *x: x[0]):
         """
         Method to load the train cases.
 
