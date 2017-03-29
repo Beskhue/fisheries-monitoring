@@ -151,6 +151,11 @@ def do_segmentation(img_idxs=None, output=True, save_candidates=True, data='trai
     data_x = data_imgs['x']
     data_meta = data_imgs['meta']
     
+    if img_idxs is None:
+        random.seed(42)
+        img_idxs = list(range(len(data_x)))
+        random.shuffle(img_idxs)
+
     if len(img_idxs) == 0:
         print('Empty index range given.')
         exit()
@@ -167,12 +172,6 @@ def do_segmentation(img_idxs=None, output=True, save_candidates=True, data='trai
                 out_train_json_objs[cls] = []
         else:
             out_json_obj = []
-            
-    
-    if img_idxs is None:
-        random.seed(42)
-        img_idxs = list(range(len(data_x)))
-        random.shuffle(img_idxs)
     
     # Prepare performance measurements
     tp_boxes = 0
