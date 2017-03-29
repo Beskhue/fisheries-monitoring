@@ -2,7 +2,6 @@ import os
 import pprint
 from clize import run
 import pipeline
-import segmentation
 import settings
 
 def example():
@@ -106,6 +105,9 @@ def segment_dataset(dataset, index_range=None, *, silent=False):
     
     silent: No output.
     """
+
+    import segmentation
+
     if index_range is not None:
         try:
             index_range = [int(index_range)]
