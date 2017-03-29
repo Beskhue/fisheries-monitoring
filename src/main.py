@@ -2,6 +2,7 @@ import os
 import pprint
 from clize import run
 import pipeline
+import segmentation
 import settings
 
 def example():
@@ -95,6 +96,27 @@ def fine_tune_xception_network():
         input_weights_name = "ext_xception_toptrained.hdf5",
         n_layers = 125)
 
+def segment_dataset(dataset, index_range=None, *, silent=False):
+    """
+    Segments (part of) the given data set by colour, producing and saving candidate bounding boxes in a JSON file. Note: slow!
+    
+    dataset: Which image data to segment: train, test or final.
+    
+    index_range: Which image indices to segment (either one index (4) or a range(6-7)). Warning: due to initial overhead, relatively even sloewr for one index.
+    
+    silent: No output.
+    """
+    if index_range is not None:
+        try:
+            index_range = [int(index_range)]
+        except ValueError:
+            try:
+                parts = index_range.split('-',1)
+                index_range = list(range(int(parts[0]), int(parts[1])+1))
+            except:
+                print('Not a valid index or index range: ' + index_range)
+    segmentation.do_segmentation(img_idxs=index_range, output = not silent, save_candidates=True, data=dataset)
+
 def convert_annotations_to_darknet(single_class = False):
     """
     Convert the bounding box annotations to the format supported by Darknet.
@@ -183,5 +205,6 @@ if __name__ == "__main__":
         train_network,
         train_top_xception_network,
         fine_tune_xception_network,
+        segment_dataset,
         convert_annotations_to_darknet,
         crop_images)
