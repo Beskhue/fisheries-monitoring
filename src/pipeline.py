@@ -12,11 +12,10 @@ import scipy.misc
 import sklearn.model_selection
 import numpy as np
 from time import sleep
-from keras.preprocessing.image import ImageDataGenerator
 
 class Pipeline:
 
-    def __init__(self, class_filter = [], f_middleware = lambda x: x):
+    def __init__(self, class_filter = [], f_middleware = lambda *x: x[0]):
         """
         Pipeline initialization.
 
@@ -49,6 +48,9 @@ class Pipeline:
 
         :return: An generator implementing data augmentation
         """ 
+
+        from keras.preprocessing.image import ImageDataGenerator
+
         datagen = ImageDataGenerator(
                 rescale = settings.AUGMENTATION_RESCALE,
                 rotation_range = settings.AUGMENTATION_ROTATION_RANGE,
@@ -456,13 +458,14 @@ class DataLoader:
         return {'x':x, 'y':y, 'meta': m}
     
     
-    def get_train_images_and_classes(self, f_middleware):
+    def get_train_images_and_classes(self, f_middleware = lambda *x: x[0]):
         """
         Method to load the train cases.
 
         :param f_middleware: A function to execute on the loaded raw image, its class and the meta-information
                              right after loading it. Should return the (pre-processed) image.
-        :return: A dictionary containing the list of classes (y) and list of (function to load) images (x)
+        :return: A dictionary containing the list of classes (y) and list of (function to load) images (x), as well
+                 as a list of meta information for each image (meta).
         """
 
         classes = self.get_classes()

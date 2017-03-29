@@ -24,6 +24,7 @@ TENSORBOARD_LOGS_DIR = os.path.join(DATA_DIR, 'tb_logs')
 ## Output directories
 
 CONVERTED_BOUNDING_BOX_OUTPUT_DIR = os.path.join(OUTPUT_DIR, "bounding_boxes", strftime("%Y%m%dT%H%M%S"))
+CROPS_OUTPUT_DIR = os.path.join(OUTPUT_DIR, "crops", strftime("%Y%m%dT%H%M%S"))
 
 # Problem-specific settings
 
