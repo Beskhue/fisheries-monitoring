@@ -36,24 +36,24 @@ Place the competitino data and bounding boxes into a directory structure as foll
 ```
 +-- data
 |   +-- bounding_boxes
-    |   +-- ALB.json
-    |   +-- BET.json
-    |       ...
+|   |   +-- ALB.json
+|   |   +-- BET.json
+|   |       ...
 |   +-- candidates
-    |   +-- train
-        |   +-- ALB_candidates_0-x.json
-        |   +-- ALB_candidates_x-y.json
-        |       ...
+|   |   +-- train
+|   |   |   +-- ALB_candidates_0-x.json
+|   |   |   +-- ALB_candidates_x-y.json
+|   |   |       ...
 |   +-- train
-    |   +-- ALB
-    |   +-- BET
-    |       ...
+|   |   +-- ALB
+|   |   +-- BET
+|   |       ...
 +-- output
 +-- src
 |   +-- __init__.py
 |   +-- colour.py
 |   +-- darknet.py
-    |   ...
+|       ...
 ```
 
 ### Prepare the image crops
