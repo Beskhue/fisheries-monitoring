@@ -23,7 +23,7 @@ PRETRAINED_MODELS = {
 }
 class TransferLearning:
 	
-    def __init__(self):
+    def __init__(self, tensorBoard = True):
         """
         TransferLearning initialization.
         """
@@ -32,6 +32,7 @@ class TransferLearning:
         self.extended_model = None
         self.extended_model_name = None
         self.generators = {}
+        self.tensorBoard = tensorBoard
         self.pipeline = pipeline.Pipeline(class_filter = ["NoF"])
     
     def set_full_generator(self, mini_batch_size):
@@ -103,6 +104,8 @@ class TransferLearning:
         # Calculate class weights
         class_weights = self.pipeline.class_reciprocal_weights()
 
+        callbacks_list = []
+
         # Save the model with best validation accuracy during training
         weights_path = os.path.join(settings.WEIGHTS_DIR, weights_name)
         checkpoint = keras.callbacks.ModelCheckpoint(
@@ -111,16 +114,18 @@ class TransferLearning:
             verbose=1,
             save_best_only = False,
             mode = 'max')
+        callbacks_list.append(checkpoint)
                  
-        # Output tensorboard logs
-        tf_logs = keras.callbacks.TensorBoard(
-            log_dir = settings.TENSORBOARD_LOGS_DIR,
-            histogram_freq = 1,
-            write_graph = True,
-            write_images = True)
+        if self.tensorBoard:
+            # Output tensorboard logs
+            tf_logs = keras.callbacks.TensorBoard(
+                log_dir = settings.TENSORBOARD_LOGS_DIR,
+                histogram_freq = 1,
+                write_graph = True,
+                write_images = True)
+            callbacks_list.append(tf_logs)
 
         # Train
-        callbacks_list = [checkpoint, tf_logs]
         self.extended_model.fit_generator(
             generator = self.generators['train'],
             steps_per_epoch = int(3299/mini_batch_size), 
