@@ -39,6 +39,11 @@ Place the competitino data and bounding boxes into a directory structure as foll
     |   +-- ALB.json
     |   +-- BET.json
     |       ...
+|   +-- candidates
+    |   +-- train
+        |   +-- ALB_candidates_0-x.json
+        |   +-- ALB_candidates_x-y.json
+        |       ...
 |   +-- train
     |   +-- ALB
     |   +-- BET
@@ -48,7 +53,7 @@ Place the competitino data and bounding boxes into a directory structure as foll
 |   +-- __init__.py
 |   +-- colour.py
 |   +-- darknet.py
-    ...
+    |   ...
 ```
 
 ### Prepare the image crops
