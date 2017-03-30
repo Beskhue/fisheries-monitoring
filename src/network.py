@@ -23,7 +23,7 @@ PRETRAINED_MODELS = {
 }
 class TransferLearning:
 	
-    def __init__(self, tensorBoard = True):
+    def __init__(self, tensor_board = True):
         """
         TransferLearning initialization.
         """
@@ -32,7 +32,7 @@ class TransferLearning:
         self.extended_model = None
         self.extended_model_name = None
         self.generators = {}
-        self.tensorBoard = tensorBoard
+        self.tensor_board = tensor_board
         self.pipeline = pipeline.Pipeline(class_filter = ["NoF"])
     
     def set_full_generator(self, mini_batch_size):
@@ -116,8 +116,8 @@ class TransferLearning:
             mode = 'max')
         callbacks_list.append(checkpoint)
                  
-        if self.tensorBoard:
-            # Output tensorboard logs
+        if self.tensor_board:
+            # Output tensor board logs
             tf_logs = keras.callbacks.TensorBoard(
                 log_dir = settings.TENSORBOARD_LOGS_DIR,
                 histogram_freq = 1,
