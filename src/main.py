@@ -101,7 +101,7 @@ def segment_dataset(dataset, index_range=None, *, silent=False):
     
     dataset: Which image data to segment: train, test or final.
     
-    index_range: Which image indices to segment (either one index (4) or a range(6-7)). Warning: due to initial overhead, relatively even sloewr for one index.
+    index_range: Which image indices to segment (either one index (4) or a range(6-7)). Warning: due to initial overhead, relatively even slower for one index.
     
     silent: No output.
     """
@@ -198,25 +198,31 @@ def crop_images(*, ground_truth = False, no_histogram_matching = False):
                 # so histogram match it
                 img = preprocessing.hist_match(img, template)
         
+        if not ground_truth:
+            if 'bounding_boxes' in meta:
+                ref_bboxes = meta['bounding_boxes']
+            else:
+                ref_bboxes = []
+        
         # For each crop...
-        bboxes = meta[metastr]
+        cand_bboxes = meta[metastr]
         crops = zip(*preprocessing.crop(img, meta[metastr]))
-        for i in range(len(bboxes)):
+        for i in range(len(cand_bboxes)):
             crop, clss = next(crops)
-            bbox = bboxes[i]
+            cand_bbox = cand_bboxes[i]
             n += 1
             
             if ground_truth:
                 outcls = clss
             else:
-                box_x_low, box_x_high, box_y_low, box_y_high = preprocessing.zoom_box(bbox, img.shape)
-                candcrop = {'x': box_x_low, 'width': box_x_high-box_x_low, 'y': box_y_low, 'height': box_y_high-box_y_low}
+                box_x_low, box_x_high, box_y_low, box_y_high = preprocessing.zoom_box(cand_bbox, img.shape)
+                cand_crop = {'x': box_x_low, 'width': box_x_high-box_x_low, 'y': box_y_low, 'height': box_y_high-box_y_low}
                 
-                if any(containment_ratio(bbox, fish) >= pos_overlap_ratio for fish in meta["bounding_boxes"]): # more than 65% of a fish is inside
+                if any(containment_ratio(cand_bbox, fish) >= pos_overlap_ratio for fish in ref_bboxes): # more than 65% of a fish is inside
                     outcls = "positive"
-                elif any(containment_ratio(fish, bbox) >= pos_containment_ratio for fish in meta["bounding_boxes"]): # more than half of this b.box contains a fish (for overly large sharks)
+                elif any(containment_ratio(fish, cand_bbox) >= pos_containment_ratio for fish in ref_bboxes): # more than half of this b.box contains a fish (for overly large sharks)
                     outcls = "positive"
-                elif all(containment_ratio(candcrop, fish) <= neg_overlap_ratio for fish in meta["bounding_boxes"]): # negative even when zoomed out
+                elif all(containment_ratio(cand_crop, fish) <= neg_overlap_ratio for fish in ref_bboxes): # negative even when zoomed out
                     outcls = "negative"
                 else: # too ambiguous for fish-or-not training data
                     continue
