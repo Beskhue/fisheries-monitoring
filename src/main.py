@@ -237,8 +237,10 @@ def crop_images(dataset, *,
                 crop = next(crops)
             
             if ground_truth:
+                # Cropping the ground truth bounding boxes
                 outcls = clss
             else:
+                # Cropping the candidate regions
                 if dataset == 'train':
                     box_x_low, box_x_high, box_y_low, box_y_high = preprocessing.zoom_box(cand_bbox, img.shape)
                     cand_crop = {'x': box_x_low, 'width': box_x_high-box_x_low, 'y': box_y_low, 'height': box_y_high-box_y_low}
