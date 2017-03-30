@@ -111,13 +111,18 @@ class TransferLearning:
 
         callbacks_list = []
 
+        # Create weight output dir if it does not exist
+        if not os.path.exists(settings.WEIGHTS_OUTPUT_DIR):
+            os.makedirs(settings.WEIGHTS_OUTPUT_DIR)
+
         # Save the model with best validation accuracy during training
-        weights_path = os.path.join(settings.WEIGHTS_DIR, weights_name)
+        weights_name = weights_name + ".{epoch:03d}-{val_loss:.4f}.hdf5"
+        weights_path = os.path.join(settings.WEIGHTS_OUTPUT_DIR, weights_name)
         checkpoint = keras.callbacks.ModelCheckpoint(
             weights_path,
             monitor = 'val_acc',
             verbose=1,
-            save_best_only = False,
+            save_best_only = True,
             mode = 'max')
         callbacks_list.append(checkpoint)
                  
@@ -165,7 +170,7 @@ class TransferLearning:
            layer.trainable = True
 
         self.extended_model.compile(optimizer=keras.optimizers.SGD(lr=0.0001, momentum=0.9), loss='sparse_categorical_crossentropy', metrics = ['accuracy'])
-        weights_name = self.extended_model_name+'_finetuned.hdf5'
+        weights_name = self.extended_model_name+'.finetuned'
         
         # Train
         self.train(epochs, mini_batch_size, weights_name)
@@ -188,7 +193,7 @@ class TransferLearning:
                 loss = 'sparse_categorical_crossentropy',
                 metrics = ['accuracy'])
                 
-        weights_name = self.extended_model_name+'_toptrained.hdf5'
+        weights_name = self.extended_model_name+'.toptrained'
         
         # Train
         self.train(epochs, mini_batch_size, weights_name)
