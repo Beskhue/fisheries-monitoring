@@ -73,7 +73,7 @@ class Pipeline:
         Use data augmentation to generate a generator for ALL the dataset.
         :mini_batch_size size of the mini-batches
 
-        :return: A dictionary with the full set generator in 'full'
+        :return: A dictionary with the full set generator in 'train'
         """  
         self.load_precropped()
 
@@ -82,7 +82,7 @@ class Pipeline:
         meta = self.precropped_train_data['meta']
         
         return {
-            'full': self.augmented_generator_generator(x, y, meta, mini_batch_size)
+            'train': self.augmented_generator_generator(x, y, meta, mini_batch_size)
             }
                 
     def augmented_train_and_validation_generator_generator(self, mini_batch_size = 128):
