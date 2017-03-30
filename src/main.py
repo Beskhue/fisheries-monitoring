@@ -71,7 +71,7 @@ def train_top_xception_network():
 
     import network
 
-    tl = network.TransferLearning()
+    tl = network.TransferLearning(class_filter = ["NoF"])
 
     tl.build('xception', summary = False)
     tl.train_top(
@@ -86,7 +86,7 @@ def fine_tune_xception_network():
 
     import network
 
-    tl = network.TransferLearning()
+    tl = network.TransferLearning(class_filter = ["NoF"])
 
     tl.fine_tune_extended(
         epochs = 70,

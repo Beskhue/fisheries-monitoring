@@ -2,6 +2,7 @@
 Module to train and use neural networks.
 """
 import os
+import abc
 import pipeline
 import settings
 import keras
@@ -22,20 +23,12 @@ PRETRAINED_MODELS = {
     "resnet":    ResNet50
 }
 
-class TransferLearning:
-	
-    def __init__(self, tensor_board = True):
-        """
-        TransferLearning initialization.
-        """
-        self.base_model = None
-        self.base_model_name = None
-        self.extended_model = None
-        self.extended_model_name = None
-        self.generators = {}
+class Learning:
+    def __init__(self, class_filter = [], tensor_board = True):
+        self.model = None
         self.tensor_board = tensor_board
-        self.pipeline = pipeline.Pipeline(class_filter = ["NoF"])
-    
+        self.pipeline = pipeline.Pipeline(class_filter = class_filter)
+
     def set_full_generator(self, mini_batch_size):
         """
         Add a data augmented generator over all dataset (without train
@@ -54,49 +47,13 @@ class TransferLearning:
         """
         self.generators.update(self.pipeline.augmented_train_and_validation_generator_generator(mini_batch_size = mini_batch_size))
 
-    def extend(self):
-        """
-        Extend the model by stacking new (dense) layers on top of the network
-        """
-        x = self.base_model.output
-        x = keras.layers.GlobalAveragePooling2D()(x)
-        x = keras.layers.Dense(1024, activation='relu')(x)
-        predictions = keras.layers.Dense(7, activation='softmax')(x)
+    @abc.abstractmethod
+    def build(self):
+        throw(NotImplemented("Must be implemented be child child."))
 
-        # This is the model we will train:
-        self.extended_model = keras.models.Model(input=self.base_model.input, output=predictions)
-
-    def build(self, base_model_name, input_shape = None, extended_model_name = None, summary = False):
-        """
-        Build an extended model. A base model is first loaded disregarding its last layers and afterwards
-        some new layers are stacked on top so the resulting model would be applicable to the
-        fishering-monitoring problem
-        
-        :param base_model_name: model name to load and use as base model (`"vgg16"`,`"vgg19"`,`"inception"`,`"xception"`,`"resnet"`).
-        :param input_shape: optional shape tuple (see input_shape of argument of base network used in Keras).
-        :param extended_model_name: name for the extended model. It will affect only to the weights file to write on disk
-        :param summary: whether to print the summary of the extended model
-        """
-
-        # Set the base model configuration and extended model name
-        self.base_model_name = base_model_name
-        self.base_model = PRETRAINED_MODELS[self.base_model_name](weights = 'imagenet', include_top = False, input_shape = input_shape)
-        if not extended_model_name:
-            extended_model_name = 'ext_' + base_model_name
-
-        self.extended_model_name = extended_model_name
-
-        # Extend the base model
-        print("Building %s using %s as the base model..." % (self.extended_model_name, self.base_model_name))
-        self.extend()        
-        print("Done building the model.")
-
-        if summary:
-            print(self.extended_model.summary())
-            
     def train(self, epochs, mini_batch_size, weights_name):
         """
-        Train the (previously loaded/set) extended model. It is assumed that the `extended_model` object
+        Train the (previously loaded/set) model. It is assumed that the `model` object
         has been already configured (such as which layers of it are frozen and which not)
         
         :param epochs: the number of training epochs
@@ -136,7 +93,7 @@ class TransferLearning:
             callbacks_list.append(tf_logs)
 
         # Train
-        self.extended_model.fit_generator(
+        self.model.fit_generator(
             generator = self.generators['train'],
             steps_per_epoch = int(3299/mini_batch_size), 
             epochs = epochs,
@@ -145,6 +102,62 @@ class TransferLearning:
             class_weight = class_weights,
             workers = 2,
             callbacks = callbacks_list)
+
+
+class TransferLearning(Learning):
+	
+    def __init__(self, class_filter = [], tensor_board = True):
+        """
+        TransferLearning initialization.
+        """
+        super().__init__(class_filter = class_filter, tensor_board = tensor_board)
+
+        self.base_model = None
+        self.base_model_name = None
+        self.model_name = None
+        self.generators = {}
+        self.tensor_board = tensor_board
+        self.pipeline = pipeline.Pipeline(class_filter = ["NoF"])
+
+    def extend(self):
+        """
+        Extend the model by stacking new (dense) layers on top of the network
+        """
+        x = self.base_model.output
+        x = keras.layers.GlobalAveragePooling2D()(x)
+        x = keras.layers.Dense(1024, activation='relu')(x)
+        predictions = keras.layers.Dense(7, activation='softmax')(x)
+
+        # This is the model we will train:
+        self.model = keras.models.Model(input=self.base_model.input, output=predictions)
+
+    def build(self, base_model_name, input_shape = None, extended_model_name = None, summary = False):
+        """
+        Build an extended model. A base model is first loaded disregarding its last layers and afterwards
+        some new layers are stacked on top so the resulting model would be applicable to the
+        fishering-monitoring problem
+        
+        :param base_model_name: model name to load and use as base model (`"vgg16"`,`"vgg19"`,`"inception"`,`"xception"`,`"resnet"`).
+        :param input_shape: optional shape tuple (see input_shape of argument of base network used in Keras).
+        :param extended_model_name: name for the extended model. It will affect only to the weights file to write on disk
+        :param summary: whether to print the summary of the extended model
+        """
+
+        # Set the base model configuration and extended model name
+        self.base_model_name = base_model_name
+        self.base_model = PRETRAINED_MODELS[self.base_model_name](weights = 'imagenet', include_top = False, input_shape = input_shape)
+        if not extended_model_name:
+            extended_model_name = 'ext_' + base_model_name
+
+        self.model_name = extended_model_name
+
+        # Extend the base model
+        print("Building %s using %s as the base model..." % (self.model_name, self.base_model_name))
+        self.extend()        
+        print("Done building the model.")
+
+        if summary:
+            print(self.model.summary())
     
     def fine_tune_extended(self, epochs, mini_batch_size, input_weights_name, n_layers = 126):
         """
@@ -160,17 +173,17 @@ class TransferLearning:
         """
 
         # Load weights
-        self.extended_model.load_weights(os.path.join(settings.WEIGHTS_DIR,input_weights_name))
+        self.model.load_weights(os.path.join(settings.WEIGHTS_DIR,input_weights_name))
 
         # Freeze layers
-        for layer in self.extended_model.layers[:n_layers]:
+        for layer in self.model.layers[:n_layers]:
            layer.trainable = False
 
-        for layer in self.extended_model.layers[n_layers:]:
+        for layer in self.model.layers[n_layers:]:
            layer.trainable = True
 
-        self.extended_model.compile(optimizer=keras.optimizers.SGD(lr=0.0001, momentum=0.9), loss='sparse_categorical_crossentropy', metrics = ['accuracy'])
-        weights_name = self.extended_model_name+'.finetuned'
+        self.model.compile(optimizer=keras.optimizers.SGD(lr=0.0001, momentum=0.9), loss='sparse_categorical_crossentropy', metrics = ['accuracy'])
+        weights_name = self.model_name+'.finetuned'
         
         # Train
         self.train(epochs, mini_batch_size, weights_name)
@@ -188,12 +201,12 @@ class TransferLearning:
         for layer in self.base_model.layers:
             layer.trainable = False
             
-        self.extended_model.compile(
+        self.model.compile(
                 optimizer = 'adam',
                 loss = 'sparse_categorical_crossentropy',
                 metrics = ['accuracy'])
                 
-        weights_name = self.extended_model_name+'.toptrained'
+        weights_name = self.model_name+'.toptrained'
         
         # Train
         self.train(epochs, mini_batch_size, weights_name)
