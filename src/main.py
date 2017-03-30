@@ -132,13 +132,13 @@ def convert_annotations_to_darknet(single_class = False):
     train_imgs = dl.get_train_images_and_classes()
     darknet.save_annotations_for_darknet(train_imgs, single_class = single_class)
 
-def crop_images(histogram_matching = True):
+def crop_images(*, ground_truth = False, no_histogram_matching = False):
     """
-    Crop images in the data using the bounding box annotations.
+    Crop images in the data using either bounding box annotations or generated candidates. Creates one crop for each bounding box / candidate.
 
-    Creates one crop for each bounding box.
-
-    :param histogram_matching: Whether to apply histogram matching on the night-vision images.
+    ground_truth: use ground-truth bounding boxes (with flag) rather than generated candidates (default)
+    
+    no_histogram_matching: disable histogram matching to colour in night-vision images
     """
 
     import preprocessing
@@ -157,12 +157,16 @@ def crop_images(histogram_matching = True):
     print("Loaded %s images." % len(imgs))
 
     # Prepare for histogram matching if we need it
-    if histogram_matching:
+    if not no_histogram_matching:
         import colour
         print("Applying histogram matching. Preparing template...")
         template = preprocessing.build_template(imgs, metas)
         print("Template prepared")
-
+    
+    if ground_truth:
+        metastr = "bounding_boxes"
+    else:
+        metastr = "candidates"
 
     print("Cropping %s input images to %s..." % (len(imgs), settings.CROPS_OUTPUT_DIR))
 
@@ -172,19 +176,19 @@ def crop_images(histogram_matching = True):
     for img, meta in zip(imgs, metas):
         # Load image
         img = img()
-
-        if "bounding_boxes" not in meta:
-            # No bounding boxes, so skip this image
+        
+        if metastr not in meta:
+            # No bounding boxes/candidates, so skip this image
             continue
 
-        if histogram_matching:
+        if not no_histogram_matching:
             if colour.is_night_vision(img):
                 # We are performing histogram matching and this image is night vision,
                 # so histogram match it
                 img = preprocessing.hist_match(img, template)
-
+        
         # For each crop...
-        for crop, clss in zip(*preprocessing.crop(img, meta["bounding_boxes"])):
+        for crop, clss in zip(*preprocessing.crop(img, meta[metastr])):
             n += 1
             class_dir = os.path.join(settings.CROPS_OUTPUT_DIR, clss)
             file_path = os.path.join(class_dir, "img_%s.jpg" % n)

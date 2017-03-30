@@ -423,6 +423,36 @@ class DataLoader:
 
         return bounding_boxes
     
+    def get_candidates(self, dataset='train'):
+        """
+        Get the candidates of fishes in the given data set.
+
+        :return: Dictionary containing the bounding boxes.
+        """
+        classes = self.get_classes()
+        candidates = {}
+        if dataset == 'train':
+            for clss in classes:
+                candidates[clss] = {}
+
+        for cand_file_name in glob.glob(os.path.join(settings.CANDIDATES_INPUT_DIR, '*.json')):
+            with open(cand_file_name) as data_file:
+                data = json.load(data_file)
+                for d in data:
+                    name = d['filename']
+                    annotations = d['candidates']
+                    
+                    if dataset == 'train':
+                        for clss in classes:
+                            if clss + "_candidates" in cand_file_name:
+                                for annotation in annotations:
+                                    annotation['class'] = clss
+                                candidates[clss][name] = annotations
+                    else:
+                        candidates[name] = annotations
+        
+        return candidates
+    
     def get_precropped_train_images_and_classes(self):
         """
         Method to load all the pre-cropped train cases into memory.
@@ -474,6 +504,7 @@ class DataLoader:
         m = []
 
         bounding_boxes = self.get_bounding_boxes()
+        candidates = self.get_candidates(dataset='train')
 
         for clss in classes:
             if clss in self.class_filter:
@@ -490,6 +521,8 @@ class DataLoader:
                 meta['class'] = clss
                 if clss != "NoF":
                     meta['bounding_boxes'] = bounding_boxes[clss][name]
+                if name in candidates[clss]:
+                    meta['candidates'] = candidates[clss][name]
 
                 x.append((lambda filename, clss, meta: lambda: f_middleware(self.load(filename), clss, meta))(filename, clss, meta))
                 y.append(clss)
