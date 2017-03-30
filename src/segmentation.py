@@ -236,7 +236,7 @@ def do_segmentation(img_idxs=None, output=True, save_candidates=True, data='trai
                     fish_recall = 100*tp_fish / float(num_fish) if num_fish > 0 else -1
                     print('Box precision after %d images: %g%% (%d/%d)\nFish recall after %d images: %g%% (%d/%d%s)\n' % (idx_idx+1, box_precision, tp_boxes, num_boxes, idx_idx+1, fish_recall, tp_fish, num_fish, (', %d impossible' % num_impossible) if num_impossible > 0 else ''))
                 else:
-                    print('%d images segmented (%d candidates in total)' % (idx, num_boxes))
+                    print('%d images segmented (%d candidates in total)' % (idx_idx+1, num_boxes))
         
         if save_candidates:
             img_json_obj = {'filename': data_meta[idx]['filename']}
@@ -254,7 +254,7 @@ def do_segmentation(img_idxs=None, output=True, save_candidates=True, data='trai
             fish_recall = 100*tp_fish / float(num_fish) if num_fish > 0 else -1
             print('\n%d images completed!\nTotal box precision: %g%% (%d/%d)\nTotal fish recall: %g%% (%d/%d%s)\n' % (len(img_idxs), box_precision, tp_boxes, num_boxes, fish_recall, tp_fish, num_fish, (', %d impossible' % num_impossible) if num_impossible > 0 else ''))
         else:
-            print('%d images segmented (%d candidates in total)' % (idx, num_boxes))
+            print('%d images segmented (%d candidates in total)' % (idx_idx+1, num_boxes))
 
     if save_candidates:
         outdir = settings.SEGMENTATION_CANDIDATES_OUTPUT_DIR
