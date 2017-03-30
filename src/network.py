@@ -52,20 +52,21 @@ class TransferLearning:
         """
         self.generators.update(self.pipeline.augmented_train_and_validation_generator_generator(mini_batch_size = mini_batch_size))
 
-    def build(self, base_model_name, extended_model_name = None, summary = False):
+    def build(self, base_model_name, input_shape = None, extended_model_name = None, summary = False):
         """
         Build an extended model. A base model is first loaded disregarding its last layers and afterwards
         some new layers are stacked on top so the resulting model would be applicable to the
         fishering-monitoring problem
         
         :param base_model_name: model name to load and use as base model (`"vgg16"`,`"vgg19"`,`"inception"`,`"xception"`,`"resnet"`).
+        :param input_shape: optional shape tuple (see input_shape of argument of base network used in Keras).
         :param extended_model_name: name for the extended model. It will affect only to the weights file to write on disk
         :param summary: whether to print the summary of the extended model
         """
 
         # Set the base model configuration and extended model name
         self.base_model_name = base_model_name
-        self.base_model = PRETRAINED_MODELS[self.base_model_name](weights = 'imagenet', include_top = False)
+        self.base_model = PRETRAINED_MODELS[self.base_model_name](weights = 'imagenet', include_top = False, input_shape = input_shape)
         if not extended_model_name:
             extended_model_name = 'ext_' + base_model_name
 
