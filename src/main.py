@@ -1,6 +1,6 @@
 import os
 import pprint
-from clize import run
+from clize import run, parameters
 import pipeline
 import settings
 
@@ -132,20 +132,24 @@ def convert_annotations_to_darknet(single_class = False):
     train_imgs = dl.get_train_images_and_classes()
     darknet.save_annotations_for_darknet(train_imgs, single_class = single_class)
 
-def crop_images(dataset, *, ground_truth = False, no_histogram_matching = False):
+def crop_images(dataset, *, 
+                crop_type : parameters.one_of(("candidates", "Create crops using the candidate regions."), ("ground_truth", "Create crops using the ground truth fish bounding boxes."), case_sensitive = True) = "candidates", 
+                no_histogram_matching = False):
     """
     Crop images in the data using either bounding box annotations or generated candidates. Creates one crop for each bounding box / candidate.
     
     dataset: which data set to crop images from (train, test, final)
 
-    ground_truth: use ground-truth bounding boxes (with flag) rather than generated candidates (default)
+    crop_type: whether to use candidate regions or ground-truth bounding boxes for cropping
     
     no_histogram_matching: disable histogram matching to colour in night-vision images
     """
 
     import preprocessing
     from skimage.io import imsave
-        
+
+    ground_truth = crop_type == "ground_truth"
+
     if ground_truth and dataset != 'train':
         print("No ground truth available for dataset " + dataset)
         exit()
