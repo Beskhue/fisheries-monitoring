@@ -139,8 +139,7 @@ def do_segmentation(img_idxs=None, output=True, save_candidates=True, data='trai
     if data == 'train':
         data_imgs = dl.get_train_images_and_classes()
     elif data == 'test':
-        print('Test support pending')
-        exit()
+        data_imgs = dl.get_test_images()
     elif data == 'final':
         print('Final stage not started yet')
         exit()
@@ -187,7 +186,11 @@ def do_segmentation(img_idxs=None, output=True, save_candidates=True, data='trai
     matches_centroid = lambda bbox, centroid: intersection(bbox, centroid) / float(bbox['width']*bbox['height']) >= overlap_ratio
     
     # Prepare histogram matching template
-    template = preprocessing.build_template(data_x, data_meta)
+    if data == 'train':
+        template = preprocessing.build_template(data_x, data_meta)
+    else:
+        hist_template_data_imgs = dl.get_train_images_and_classes(file_filter=preprocessing.DEFAULT_HIST_MATCH_TEMPLATES)
+        template = preprocessing.build_template(hist_template_data_imgs['x'], hist_template_data_imgs['meta'])
     
     for idx_idx in range(len(img_idxs)):
         idx = img_idxs[idx_idx]
@@ -221,14 +224,19 @@ def do_segmentation(img_idxs=None, output=True, save_candidates=True, data='trai
         
         if output:
             # Output performance for this image
-            print('Image %d (found %d/%d%s, %d FPs%s)' % (idx, num_found_fish, len(imgboxes)-num_impossible_here, (', %d impossible' % num_impossible_here) if num_impossible_here > 0 else '', len(centroids)-num_matching_boxes, '; NVG' if nvg else ''))
+            if data == 'train':
+                print('Image %d (found %d/%d%s, %d FPs%s)' % (idx, num_found_fish, len(imgboxes)-num_impossible_here, (', %d impossible' % num_impossible_here) if num_impossible_here > 0 else '', len(centroids)-num_matching_boxes, '; NVG' if nvg else ''))
+            else:
+                print('Image %d (%d candidates)' % (idx, len(centroids)))
             
             # Summarise performance up till now
             if idx_idx%50 == 49:
-                box_precision = 100*tp_boxes / float(num_boxes) if num_boxes > 0 else -1
-                fish_recall = 100*tp_fish / float(num_fish) if num_fish > 0 else -1
-                
-                print('Box precision after %d images: %g%% (%d/%d)\nFish recall after %d images: %g%% (%d/%d%s)\n' % (idx_idx+1, box_precision, tp_boxes, num_boxes, idx_idx+1, fish_recall, tp_fish, num_fish, (', %d impossible' % num_impossible) if num_impossible > 0 else ''))
+                if data == 'train':
+                    box_precision = 100*tp_boxes / float(num_boxes) if num_boxes > 0 else -1
+                    fish_recall = 100*tp_fish / float(num_fish) if num_fish > 0 else -1
+                    print('Box precision after %d images: %g%% (%d/%d)\nFish recall after %d images: %g%% (%d/%d%s)\n' % (idx_idx+1, box_precision, tp_boxes, num_boxes, idx_idx+1, fish_recall, tp_fish, num_fish, (', %d impossible' % num_impossible) if num_impossible > 0 else ''))
+                else:
+                    print('%d images segmented (%d candidates in total)' % (idx, num_boxes))
         
         if save_candidates:
             img_json_obj = {'filename': data_meta[idx]['filename']}
@@ -241,10 +249,12 @@ def do_segmentation(img_idxs=None, output=True, save_candidates=True, data='trai
     
     if output:
         # Summarise total performance
-        box_precision = 100*tp_boxes / float(num_boxes) if num_boxes > 0 else -1
-        fish_recall = 100*tp_fish / float(num_fish) if num_fish > 0 else -1
-        
-        print('\n%d images completed!\nTotal box precision: %g%% (%d/%d)\nTotal fish recall: %g%% (%d/%d%s)\n' % (len(img_idxs), box_precision, tp_boxes, num_boxes, fish_recall, tp_fish, num_fish, (', %d impossible' % num_impossible) if num_impossible > 0 else ''))
+        if data == 'train':
+            box_precision = 100*tp_boxes / float(num_boxes) if num_boxes > 0 else -1
+            fish_recall = 100*tp_fish / float(num_fish) if num_fish > 0 else -1
+            print('\n%d images completed!\nTotal box precision: %g%% (%d/%d)\nTotal fish recall: %g%% (%d/%d%s)\n' % (len(img_idxs), box_precision, tp_boxes, num_boxes, fish_recall, tp_fish, num_fish, (', %d impossible' % num_impossible) if num_impossible > 0 else ''))
+        else:
+            print('%d images segmented (%d candidates in total)' % (idx, num_boxes))
 
     if save_candidates:
         outdir = settings.SEGMENTATION_CANDIDATES_OUTPUT_DIR

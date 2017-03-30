@@ -132,9 +132,11 @@ def convert_annotations_to_darknet(single_class = False):
     train_imgs = dl.get_train_images_and_classes()
     darknet.save_annotations_for_darknet(train_imgs, single_class = single_class)
 
-def crop_images(*, ground_truth = False, no_histogram_matching = False):
+def crop_images(dataset, *, ground_truth = False, no_histogram_matching = False):
     """
     Crop images in the data using either bounding box annotations or generated candidates. Creates one crop for each bounding box / candidate.
+    
+    dataset: which data set to crop images from (train, test, final)
 
     ground_truth: use ground-truth bounding boxes (with flag) rather than generated candidates (default)
     
@@ -143,15 +145,28 @@ def crop_images(*, ground_truth = False, no_histogram_matching = False):
 
     import preprocessing
     from skimage.io import imsave
+        
+    if ground_truth and dataset != 'train':
+        print("No ground truth available for dataset " + dataset)
+        exit()
 
     print("Loading images...")
 
     # Load all images
     dl = pipeline.DataLoader()
-    data = dl.get_train_images_and_classes()
+    
+    if dataset == 'train':
+        data = dl.get_train_images_and_classes()
+    elif dataset == 'test':
+        data = dl.get_test_images()
+    elif dataset == 'final':
+        print("Final data set support pending")
+        exit()
+    else:
+        print("Unknown data set: " + dataset)
+        exit()
 
     imgs = data['x']
-    ys = data['y']
     metas = data['meta']
 
     print("Loaded %s images." % len(imgs))
@@ -160,7 +175,8 @@ def crop_images(*, ground_truth = False, no_histogram_matching = False):
     if not no_histogram_matching:
         import colour
         print("Applying histogram matching. Preparing template...")
-        template = preprocessing.build_template(imgs, metas)
+        hist_template_data_imgs = dl.get_train_images_and_classes(file_filter=preprocessing.DEFAULT_HIST_MATCH_TEMPLATES)
+        template = preprocessing.build_template(hist_template_data_imgs['x'], hist_template_data_imgs['meta'])
         print("Template prepared")
     
     if ground_truth:
@@ -208,30 +224,37 @@ def crop_images(*, ground_truth = False, no_histogram_matching = False):
         cand_bboxes = meta[metastr]
         crops = zip(*preprocessing.crop(img, meta[metastr]))
         for i in range(len(cand_bboxes)):
-            crop, clss = next(crops)
             cand_bbox = cand_bboxes[i]
             n += 1
+            
+            if ground_truth or dataset == 'train':
+                crop, clss = next(crops)
+            else:
+                crop = next(crops)
             
             if ground_truth:
                 outcls = clss
             else:
-                box_x_low, box_x_high, box_y_low, box_y_high = preprocessing.zoom_box(cand_bbox, img.shape)
-                cand_crop = {'x': box_x_low, 'width': box_x_high-box_x_low, 'y': box_y_low, 'height': box_y_high-box_y_low}
-                
-                if any(containment_ratio(cand_bbox, fish) >= pos_overlap_ratio for fish in ref_bboxes): # more than 65% of a fish is inside
-                    outcls = "positive"
-                elif any(containment_ratio(fish, cand_bbox) >= pos_containment_ratio for fish in ref_bboxes): # more than half of this b.box contains a fish (for overly large sharks)
-                    outcls = "positive"
-                elif all(containment_ratio(cand_crop, fish) <= neg_overlap_ratio for fish in ref_bboxes): # negative even when zoomed out
-                    outcls = "negative"
-                else: # too ambiguous for fish-or-not training data
-                    continue
+                if dataset == 'train':
+                    box_x_low, box_x_high, box_y_low, box_y_high = preprocessing.zoom_box(cand_bbox, img.shape)
+                    cand_crop = {'x': box_x_low, 'width': box_x_high-box_x_low, 'y': box_y_low, 'height': box_y_high-box_y_low}
+                    
+                    if any(containment_ratio(cand_bbox, fish) >= pos_overlap_ratio for fish in ref_bboxes): # more than 65% of a fish is inside
+                        outcls = "positive"
+                    elif any(containment_ratio(fish, cand_bbox) >= pos_containment_ratio for fish in ref_bboxes): # more than half of this b.box contains a fish (for overly large sharks)
+                        outcls = "positive"
+                    elif all(containment_ratio(cand_crop, fish) <= neg_overlap_ratio for fish in ref_bboxes): # negative even when zoomed out
+                        outcls = "negative"
+                    else: # too ambiguous for fish-or-not training data
+                        continue
+                else:
+                    outcls = "test"
             
             class_dir = os.path.join(settings.CROPS_OUTPUT_DIR, outcls)
             file_path = os.path.join(class_dir, "img_%s.jpg" % n)
 
             # Create directory for class if it does not exist yet
-            if clss not in classes_encountered:
+            if outcls not in classes_encountered:
                 if not os.path.exists(class_dir):
                     os.makedirs(class_dir)
                 classes_encountered.append(outcls)

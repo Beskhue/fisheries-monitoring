@@ -491,12 +491,13 @@ class DataLoader:
         return {'x':x, 'y':y, 'meta': m}
     
     
-    def get_train_images_and_classes(self, f_middleware = lambda *x: x[0]):
+    def get_train_images_and_classes(self, f_middleware = lambda *x: x[0], file_filter = None):
         """
         Method to load the train cases.
 
         :param f_middleware: A function to execute on the loaded raw image, its class and the meta-information
                              right after loading it. Should return the (pre-processed) image.
+        :param file_filter: A list of file names (in the form of 'img_01234') to limit the output to.
         :return: A dictionary containing the list of classes (y) and list of (function to load) images (x), as well
                  as a list of meta information for each image (meta).
         """
@@ -518,6 +519,9 @@ class DataLoader:
             filenames = glob.glob(os.path.join(dir, "*.jpg"))
             for filename in filenames:
                 name = self.get_file_name_part(filename)
+                
+                if file_filter is not None and name not in file_filter:
+                    continue
 
                 meta = {}
                 meta['filename'] = name
@@ -533,6 +537,37 @@ class DataLoader:
 
 
         return {'x': x, 'y': y, 'meta': m}
+    
+    def get_test_images(self, f_middleware = lambda *x: x[0], file_filter = None):
+        """
+        Method to load the train cases.
+
+        :param f_middleware: A function to execute on the loaded raw image, its class and the meta-information
+                             right after loading it. Should return the (pre-processed) image.
+        :param file_filter: A list of file names (in the form of 'img_01234') to limit the output to.
+        :return: A dictionary containing the list of classes (y) and list of (function to load) images (x), as well
+                 as a list of meta information for each image (meta).
+        """
+        x = []
+        m = []
+        
+        candidates = self.get_candidates(dataset='test')
+        
+        for filename in glob.glob(os.path.join(settings.TEST_DIR, '*.jpg')):
+            name = self.get_file_name_part(filename)
+            
+            if file_filter is not None and name not in file_filter:
+                continue
+            
+            meta = {}
+            meta['filename'] = name
+            if name in candidates:
+                meta['candidates'] = candidates[name]
+            
+            x.append((lambda filename, meta: lambda: f_middleware(self.load(filename), meta))(filename, meta))
+            m.append(meta)
+        
+        return {'x': x, 'meta': m}
 
     def load(self, filename):
         """
