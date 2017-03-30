@@ -88,7 +88,6 @@ def fine_tune_xception_network():
 
     tl = network.TransferLearning()
 
-    tl.build('xception', summary = False)
     tl.fine_tune_extended(
         epochs = 70,
         mini_batch_size = 32,
