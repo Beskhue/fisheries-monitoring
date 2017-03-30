@@ -29,6 +29,7 @@ class Learning:
         self.tensor_board = tensor_board
         self.validate = validate
         self.pipeline = pipeline.Pipeline(class_filter = class_filter)
+        self.generators = {}
 
     def set_full_generator(self, mini_batch_size):
         """
@@ -110,18 +111,15 @@ class Learning:
 
 class TransferLearning(Learning):
 	
-    def __init__(self, class_filter = [], tensor_board = True, validate = True):
+    def __init__(self, *args, **kwargs):
         """
         TransferLearning initialization.
         """
-        super().__init__(class_filter = class_filter, tensor_board = tensor_board, validate = validate)
+        super().__init__(*args, **kwargs)
 
         self.base_model = None
         self.base_model_name = None
         self.model_name = None
-        self.generators = {}
-        self.tensor_board = tensor_board
-        self.pipeline = pipeline.Pipeline(class_filter = ["NoF"])
 
     def extend(self):
         """
