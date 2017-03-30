@@ -167,6 +167,12 @@ def crop_images(*, ground_truth = False, no_histogram_matching = False):
         metastr = "bounding_boxes"
     else:
         metastr = "candidates"
+        pos_overlap_ratio = 0.65
+        pos_containment_ratio = 0.50
+        neg_overlap_ratio = 0.10
+        
+        intersection = lambda cand, fish: max(0, min(cand['x']+cand['width'], fish['x']+fish['width']) - max(cand['x'], fish['x'])) * max(0, min(cand['y']+cand['height'], fish['y']+fish['height']) - max(cand['y'], fish['y']))
+        containment_ratio = lambda cand, fish: intersection(cand, fish) / float(fish['width']*fish['height'])
 
     print("Cropping %s input images to %s..." % (len(imgs), settings.CROPS_OUTPUT_DIR))
 
@@ -188,20 +194,40 @@ def crop_images(*, ground_truth = False, no_histogram_matching = False):
                 img = preprocessing.hist_match(img, template)
         
         # For each crop...
-        for crop, clss in zip(*preprocessing.crop(img, meta[metastr])):
+        bboxes = meta[metastr]
+        crops = zip(*preprocessing.crop(img, meta[metastr]))
+        for i in range(len(bboxes)):
+            crop, clss = next(crops)
+            bbox = bboxes[i]
             n += 1
-            class_dir = os.path.join(settings.CROPS_OUTPUT_DIR, clss)
+            
+            if ground_truth:
+                outcls = clss
+            else:
+                box_x_low, box_x_high, box_y_low, box_y_high = preprocessing.zoom_box(bbox, img.shape)
+                candcrop = {'x': box_x_low, 'width': box_x_high-box_x_low, 'y': box_y_low, 'height': box_y_high-box_y_low}
+                
+                if any(containment_ratio(bbox, fish) >= pos_overlap_ratio for fish in meta["bounding_boxes"]): # more than 65% of a fish is inside
+                    outcls = "positive"
+                elif any(containment_ratio(fish, bbox) >= pos_containment_ratio for fish in meta["bounding_boxes"]): # more than half of this b.box contains a fish (for overly large sharks)
+                    outcls = "positive"
+                elif all(containment_ratio(candcrop, fish) <= neg_overlap_ratio for fish in meta["bounding_boxes"]): # negative even when zoomed out
+                    outcls = "negative"
+                else: # too ambiguous for fish-or-not training data
+                    continue
+            
+            class_dir = os.path.join(settings.CROPS_OUTPUT_DIR, outcls)
             file_path = os.path.join(class_dir, "img_%s.jpg" % n)
 
             # Create directory for class if it does not exist yet
             if clss not in classes_encountered:
                 if not os.path.exists(class_dir):
                     os.makedirs(class_dir)
-                classes_encountered.append(clss)
+                classes_encountered.append(outcls)
 
             # Save the crop to file
             imsave(file_path, crop)
-
+    
     print("All images cropped.")
 
 
