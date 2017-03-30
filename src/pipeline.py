@@ -434,8 +434,11 @@ class DataLoader:
         if dataset == 'train':
             for clss in classes:
                 candidates[clss] = {}
+        elif not (dataset == 'test' or dataset == 'final'):
+            print('Unknown candidate data set: ' + dataset)
+            exit()
 
-        for cand_file_name in glob.glob(os.path.join(settings.CANDIDATES_INPUT_DIR, '*.json')):
+        for cand_file_name in glob.glob(os.path.join(settings.CANDIDATES_INPUT_DIR, dataset, '*.json')):
             with open(cand_file_name) as data_file:
                 data = json.load(data_file)
                 for d in data:

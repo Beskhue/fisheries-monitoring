@@ -232,7 +232,7 @@ def do_segmentation(img_idxs=None, output=True, save_candidates=True, data='trai
         
         if save_candidates:
             img_json_obj = {'filename': data_meta[idx]['filename']}
-            img_json_obj['candidates'] = unique([{'x': lower(centroid, 0), 'y': lower(centroid, 1), 'width': bbox_size, 'height': bbox_size} for centroid in centroids], key=lambda cand: (cand['y'], cand['x']))
+            img_json_obj['candidates'] = unique([{'x': lower(centroid, 1), 'y': lower(centroid, 0), 'width': bbox_size, 'height': bbox_size} for centroid in centroids], key=lambda cand: (cand['x'], cand['y']))
             if data == 'train':
                 out_train_json_objs[data_meta[idx]['class']].append(img_json_obj)
             else:
