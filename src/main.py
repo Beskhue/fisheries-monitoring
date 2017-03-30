@@ -178,10 +178,15 @@ def crop_images(*, ground_truth = False, no_histogram_matching = False):
 
     classes_encountered = []
     n = 0
+    n_img = 0
 
     for img, meta in zip(imgs, metas):
         # Load image
         img = img()
+        
+        n_img += 1
+        if n_img % 100 == 0:
+            print('Cropped %d images...' % n_img)
         
         if metastr not in meta:
             # No bounding boxes/candidates, so skip this image
