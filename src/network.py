@@ -116,14 +116,14 @@ class TransferLearning:
             os.makedirs(settings.WEIGHTS_OUTPUT_DIR)
 
         # Save the model with best validation accuracy during training
-        weights_name = weights_name + ".{epoch:03d}-{val_loss:.4f}.hdf5"
+        weights_name = weights_name + ".e{epoch:03d}-tloss{loss:.4f}-vloss{val_loss:.4f}.hdf5"
         weights_path = os.path.join(settings.WEIGHTS_OUTPUT_DIR, weights_name)
         checkpoint = keras.callbacks.ModelCheckpoint(
             weights_path,
-            monitor = 'val_acc',
+            monitor = 'val_loss',
             verbose=1,
             save_best_only = True,
-            mode = 'max')
+            mode = 'min')
         callbacks_list.append(checkpoint)
                  
         if self.tensor_board:
