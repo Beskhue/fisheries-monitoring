@@ -24,9 +24,10 @@ PRETRAINED_MODELS = {
 }
 
 class Learning:
-    def __init__(self, class_filter = [], tensor_board = True):
+    def __init__(self, class_filter = [], tensor_board = True, validate = True):
         self.model = None
         self.tensor_board = tensor_board
+        self.validate = validate
         self.pipeline = pipeline.Pipeline(class_filter = class_filter)
 
     def set_full_generator(self, mini_batch_size):
@@ -49,7 +50,7 @@ class Learning:
 
     @abc.abstractmethod
     def build(self):
-        throw(NotImplemented("Must be implemented be child child."))
+        throw(NotImplemented("Must be implemented by child class."))
 
     def train(self, epochs, mini_batch_size, weights_name):
         """
@@ -61,8 +62,11 @@ class Learning:
         :param weights_name: name for the h5py weights file to be written in the output folder
         """
         
-        self.set_train_val_generators(mini_batch_size = mini_batch_size)
-           
+        if self.validate:
+            self.set_train_val_generators(mini_batch_size = mini_batch_size)
+        else:
+            self.set_full_generator(mini_batch_size = mini_batch_size)
+
         # Calculate class weights
         class_weights = self.pipeline.class_reciprocal_weights()
 
@@ -97,8 +101,8 @@ class Learning:
             generator = self.generators['train'],
             steps_per_epoch = int(3299/mini_batch_size), 
             epochs = epochs,
-            validation_data = self.generators['validate'],
-            validation_steps = int(0.3*3299/mini_batch_size),
+            validation_data = self.generators['validate'] if self.validate else None,
+            validation_steps = int(0.3*3299/mini_batch_size) if self.validate else None,
             class_weight = class_weights,
             workers = 2,
             callbacks = callbacks_list)
@@ -106,11 +110,11 @@ class Learning:
 
 class TransferLearning(Learning):
 	
-    def __init__(self, class_filter = [], tensor_board = True):
+    def __init__(self, class_filter = [], tensor_board = True, validate = True):
         """
         TransferLearning initialization.
         """
-        super().__init__(class_filter = class_filter, tensor_board = tensor_board)
+        super().__init__(class_filter = class_filter, tensor_board = tensor_board, validate = validate)
 
         self.base_model = None
         self.base_model_name = None
