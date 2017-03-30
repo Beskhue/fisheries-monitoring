@@ -21,6 +21,7 @@ PRETRAINED_MODELS = {
     "xception":  Xception,
     "resnet":    ResNet50
 }
+
 class TransferLearning:
 	
     def __init__(self, tensor_board = True):
@@ -53,6 +54,18 @@ class TransferLearning:
         """
         self.generators.update(self.pipeline.augmented_train_and_validation_generator_generator(mini_batch_size = mini_batch_size))
 
+    def extend(self):
+        """
+        Extend the model by stacking new (dense) layers on top of the network
+        """
+        x = self.base_model.output
+        x = keras.layers.GlobalAveragePooling2D()(x)
+        x = keras.layers.Dense(1024, activation='relu')(x)
+        predictions = keras.layers.Dense(7, activation='softmax')(x)
+
+        # This is the model we will train:
+        self.extended_model = keras.models.Model(input=self.base_model.input, output=predictions)
+
     def build(self, base_model_name, input_shape = None, extended_model_name = None, summary = False):
         """
         Build an extended model. A base model is first loaded disregarding its last layers and afterwards
@@ -75,15 +88,7 @@ class TransferLearning:
 
         # Extend the base model
         print("Building %s using %s as the base model..." % (self.extended_model_name, self.base_model_name))
-
-        x = self.base_model.output
-        x = keras.layers.GlobalAveragePooling2D()(x)
-        x = keras.layers.Dense(1024, activation='relu')(x)
-        predictions = keras.layers.Dense(7, activation='softmax')(x)
-
-        # This is the model we will train:
-        self.extended_model = keras.models.Model(input=self.base_model.input, output=predictions)
-        
+        self.extend()        
         print("Done building the model.")
 
         if summary:
