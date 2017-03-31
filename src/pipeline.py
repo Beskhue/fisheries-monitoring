@@ -156,13 +156,13 @@ class Pipeline:
                     generators.append(data_gen(x, y, meta))
 
                 # Continuously yield from the various generators in a balanced way
-                while 1:
-                    for generator in generators:
-                        try: 
-                            yield next(generator)
-                        except:
-                            # Generator is done (only happens if it isn't an infinite generator), so quit
-                            break
+                try:
+                    while 1:
+                        for generator in generators:
+                                yield next(generator)
+                except GeneratorExit:
+                    # One of the generator is done (only happens if the generators aren't infinite)
+                    pass
 
             return {
                 'train': self._chain_generators(balanced_generator_build(class_to_train_data), *generators),
