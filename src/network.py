@@ -25,48 +25,46 @@ PRETRAINED_MODELS = {
 }
 
 class Learning:
-    def __init__(self, data_type = "original", class_filter = [], tensor_board = True, validate = True):
+    def __init__(self, mini_batch_size = 32, data_type = "original", class_filter = [], tensor_board = True, validate = True):
         self.model = None
+        self.mini_batch_size = mini_batch_size
         self.tensor_board = tensor_board
         self.validate = validate
-        self.pl = pipeline.Pipeline(data_type = data_type, class_filter = class_filter)
-        self.generators = {}
 
-    def set_full_generator(self, mini_batch_size):
+        self.pl = pipeline.Pipeline(data_type = data_type, class_filter = class_filter)
+
+        self.generators = {}
+        self.generator_chain = [
+            self.pl.augmented_generator,
+            self.pl.drop_meta_generator,
+            self.pl.to_class_index_generator,
+            functools.partial(self.pl.mini_batch_generator, mini_batch_size = mini_batch_size),
+            self.pl.to_numpy_arrays_generator
+        ]
+
+    def set_full_generator(self):
         """
         Add a data augmented generator over all dataset (without train
         validation splitting) to the generators dictionary
-        
-        :param mini_batch_size: size of the mini batches
         """
         self.generators = self.pl.data_generator_builder(
-            self.pl.augmented_generator,
-            self.pl.drop_meta_generator,
-            self.pl.to_class_index_generator,
-            functools.partial(self.pl.mini_batch_generator, mini_batch_size = mini_batch_size),
-            self.pl.to_numpy_arrays_generator,
+            *self.generator_chain,
             infinite = True, shuffle = True,)
 
-    def set_train_val_generators(self, mini_batch_size):
+    def set_train_val_generators(self):
         """
         Add the train and validation data augmented generators to the 
         generators dictionary
-        
-        :param mini_batch_size: size of the mini batches
         """
         self.generators = self.pl.train_and_validation_data_generator_builder(
-            self.pl.augmented_generator,
-            self.pl.drop_meta_generator,
-            self.pl.to_class_index_generator,
-            functools.partial(self.pl.mini_batch_generator, mini_batch_size = mini_batch_size),
-            self.pl.to_numpy_arrays_generator,
+            *self.generator_chain,
             infinite = True, shuffle = True,)
 
     @abc.abstractmethod
     def build(self):
         throw(NotImplemented("Must be implemented by child class."))
 
-    def train(self, epochs, mini_batch_size, weights_name):
+    def train(self, epochs, weights_name):
         """
         Train the (previously loaded/set) model. It is assumed that the `model` object
         has been already configured (such as which layers of it are frozen and which not)
@@ -77,9 +75,9 @@ class Learning:
         """
         
         if self.validate:
-            self.set_train_val_generators(mini_batch_size = mini_batch_size)
+            self.set_train_val_generators()
         else:
-            self.set_full_generator(mini_batch_size = mini_batch_size)
+            self.set_full_generator()
 
         # Calculate class weights
         class_weights = self.pl.class_reciprocal_weights()
@@ -113,10 +111,10 @@ class Learning:
         # Train
         self.model.fit_generator(
             generator = self.generators['train'],
-            steps_per_epoch = int(3299/mini_batch_size), 
+            steps_per_epoch = int(3299/self.mini_batch_size), 
             epochs = epochs,
             validation_data = self.generators['validate'] if self.validate else None,
-            validation_steps = int(0.3*3299/mini_batch_size) if self.validate else None,
+            validation_steps = int(0.3*3299/self.mini_batch_size) if self.validate else None,
             class_weight = class_weights,
             workers = 2,
             callbacks = callbacks_list)
@@ -174,7 +172,7 @@ class TransferLearning(Learning):
         if summary:
             print(self.model.summary())
     
-    def fine_tune_extended(self, epochs, mini_batch_size, input_weights_name, n_layers = 126):
+    def fine_tune_extended(self, epochs, input_weights_name, n_layers = 126):
         """
         Fine-tunes the extended model. It is assumed that the top part of the classifier has already been trained
         using the `train_top` method. It retrains the top part of the extended model and also some of the last layers
@@ -201,9 +199,9 @@ class TransferLearning(Learning):
         weights_name = self.model_name+'.finetuned'
         
         # Train
-        self.train(epochs, mini_batch_size, weights_name)
+        self.train(epochs, weights_name)
         
-    def train_top(self, epochs, mini_batch_size):
+    def train_top(self, epochs):
         """
         Trains the top part of the extended model. In other words it trains the extended model but freezing every
         layer of the base model.
@@ -224,7 +222,21 @@ class TransferLearning(Learning):
         weights_name = self.model_name+'.toptrained'
         
         # Train
-        self.train(epochs, mini_batch_size, weights_name)
+        self.train(epochs, weights_name)
+
+class TransferLearningFishOrNoFish(TransferLearning):
+    def extend(self):
+        """
+        Extend the model by stacking new (dense) layers on top of the network
+        """
+        x = self.base_model.output
+        x = keras.layers.GlobalAveragePooling2D()(x)
+        x = keras.layers.Dense(1024, activation='relu')(x)
+        predictions = keras.layers.Dense(2, activation='softmax')(x)
+
+        # This is the model we will train:
+        self.model = keras.models.Model(input=self.base_model.input, output=predictions)
+
 
 def build():
     model = keras.models.Sequential()

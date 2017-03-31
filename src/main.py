@@ -73,9 +73,7 @@ def train_top_xception_network():
     tl = network.TransferLearning(data_type = "ground_truth_cropped", class_filter = ["NoF"])
 
     tl.build('xception', summary = False)
-    tl.train_top(
-        epochs = 70,
-        mini_batch_size = 32)
+    tl.train_top(epochs = 70)
 
 def fine_tune_xception_network():
     """
@@ -89,9 +87,22 @@ def fine_tune_xception_network():
 
     tl.fine_tune_extended(
         epochs = 70,
-        mini_batch_size = 32,
         input_weights_name = "ext_xception_toptrained.hdf5",
         n_layers = 125)
+
+def train_top_fish_or_no_fish_network():
+    """
+    Train the top of the extended xception network.
+    """
+
+    import network
+
+    tl = network.TransferLearningFishOrNoFish(data_type = "candidates_cropped", class_filter = ["NoF"])
+
+    tl.build('xception', summary = False)
+    tl.train_top(
+        epochs = 70,
+        mini_batch_size = 32)
 
 def segment_dataset(dataset, index_range=None, *, silent=False):
     """
@@ -275,6 +286,7 @@ if __name__ == "__main__":
         train_network,
         train_top_xception_network,
         fine_tune_xception_network,
+        train_top_fish_or_no_fish_network,
         segment_dataset,
         convert_annotations_to_darknet,
         crop_images)
