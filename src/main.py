@@ -136,7 +136,7 @@ def fine_tune_fish_or_no_fish_network():
 
     import network
 
-    tl = network.TransferLearningFishOrNoFish(data_type = "candidates_cropped")
+    tl = network.TransferLearningFishOrNoFish(class_balance_method = "batch", prediction_class_type = "single", data_type = "candidates_cropped")
 
     tl.build('xception', summary = False)
     tl.fine_tune_extended(
