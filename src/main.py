@@ -25,7 +25,7 @@ def example_train_and_validation_split():
     Run the pipeline example (tests if the pipeline runs succesfully, should produce summary output of the first batch and first case in that batch).
     """
 
-    pl = pipeline.Pipeline(data_type = "candidates_cropped")
+    pl = pipeline.Pipeline(data_type = "ground_truth_cropped")
 
     generator = pl.train_and_validation_data_generator_builder(pl.mini_batch_generator, balance = True, infinite = True)
 
@@ -339,7 +339,9 @@ def crop_images(dataset, *,
             class_dir = os.path.join(settings.CROPS_OUTPUT_DIR, outcls)
             file_path = os.path.join(class_dir, file_name)
 
-            crop_file_name_keys[file_name] = meta['filename']
+            file_name_part = os.path.splitext(file_name)[0]
+
+            crop_file_name_keys[file_name_part] = meta['filename']
 
             # Create directory for class if it does not exist yet
             if outcls not in classes_encountered:
