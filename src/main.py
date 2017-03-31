@@ -123,7 +123,7 @@ def train_top_fish_or_no_fish_network():
 
     import network
 
-    tl = network.TransferLearningFishOrNoFish(class_balance_method = "batch", data_type = "candidates_cropped")
+    tl = network.TransferLearningFishOrNoFish(class_balance_method = "batch", prediction_class_type = "single", data_type = "candidates_cropped")
 
     tl.build('xception', summary = False)
     tl.train_top(epochs = 70)

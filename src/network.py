@@ -25,12 +25,14 @@ PRETRAINED_MODELS = {
 }
 
 class Learning:
-    def __init__(self, class_balance_method = "weights", mini_batch_size = 32, data_type = "original", class_filter = [], tensor_board = True, validate = True):
+    def __init__(self, class_balance_method = "weights", mini_batch_size = 32, data_type = "original", prediction_class_type = "multi", class_filter = [], tensor_board = True, validate = True):
         """
         :param class_balance_method: None, "weights", or "batch"
+        :param prediction_class_type: "single" or "multi"
         """
 
         self.model = None
+        self.prediction_class_type = prediction_class_type
         self.class_balance_method = class_balance_method
         self.mini_batch_size = mini_batch_size
         self.tensor_board = tensor_board
@@ -203,7 +205,14 @@ class TransferLearning(Learning):
         for layer in self.model.layers[n_layers:]:
            layer.trainable = True
 
-        self.model.compile(optimizer=keras.optimizers.SGD(lr=0.0001, momentum=0.9), loss='sparse_categorical_crossentropy', metrics = ['accuracy', metrics.precision, metrics.recall])
+        if self.prediction_class_type == "single":
+            loss = "binary_crossentropy"
+            metrics_ = ['accuracy', metrics.precision, metrics.recall]
+        elif self.prediction_class_type == "multi":
+            loss = "sparse_categorical_crossentropy"
+            metrics_ = ['accuracy']
+
+        self.model.compile(optimizer=keras.optimizers.SGD(lr=0.0001, momentum=0.9), loss=loss, metrics = metrics_)
         weights_name = self.model_name+'.finetuned'
         
         # Train
@@ -222,10 +231,17 @@ class TransferLearning(Learning):
         for layer in self.base_model.layers:
             layer.trainable = False
             
+        if self.prediction_class_type == "single":
+            loss = "binary_crossentropy"
+            metrics_ = ['accuracy', metrics.precision, metrics.recall]
+        elif self.prediction_class_type == "multi":
+            loss = "sparse_categorical_crossentropy"
+            metrics_ = ['accuracy']
+
         self.model.compile(
                 optimizer = 'adam',
-                loss = 'sparse_categorical_crossentropy',
-                metrics = ['accuracy', metrics.precision, metrics.recall])
+                loss = loss,
+                metrics = metrics_)
                 
         weights_name = self.model_name+'.toptrained'
         
@@ -241,7 +257,7 @@ class TransferLearningFishOrNoFish(TransferLearning):
         x = self.base_model.output
         x = keras.layers.GlobalAveragePooling2D()(x)
         x = keras.layers.Dense(1024, activation='relu')(x)
-        predictions = keras.layers.Dense(2, activation='softmax')(x)
+        predictions = keras.layers.Dense(1, activation='sigmoid')(x)
 
         # This is the model we will train:
         self.model = keras.models.Model(input=self.base_model.input, output=predictions)
