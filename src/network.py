@@ -225,19 +225,6 @@ class TransferLearning(Learning):
         self.train(epochs, weights_name)
 
 class TransferLearningFishOrNoFish(TransferLearning):
-    def __init__(self, *args, **kwargs):
-        """
-        TransferLearningFishOrNoFish initialization.
-        """
-        super().__init__(*args, **kwargs)
-
-        self.generator_chain = [
-            self.pl.augmented_generator,
-            self.pl.drop_meta_generator,
-            functools.partial(self.pl.class_mapper_generator, map = lambda clss: 0 if clss == "negative" else 1),
-            functools.partial(self.pl.mini_batch_generator, mini_batch_size = self.mini_batch_size),
-            self.pl.to_numpy_arrays_generator
-        ]
 
     def extend(self):
         """

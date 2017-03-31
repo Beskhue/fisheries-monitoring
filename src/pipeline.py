@@ -29,12 +29,15 @@ class Pipeline:
         self.f_middleware = f_middleware
         self.data_loader = DataLoader(class_filter)
 
+        self.class_to_index_mapper = lambda clss: settings.CLASS_NAME_TO_INDEX_MAPPING[clss]
+
         if data_type == "original":
             self.load_original(dataset = dataset)
         elif data_type == "ground_truth_cropped":
             self.load_precropped_ground_truth()
         elif data_type == "candidates_cropped":
             self.load_precropped_candidates(dataset = dataset)
+            self.class_to_index_mapper = lambda clss: 0 if clss == "negative" else 1
         else:
             throw(ValueError("data_type should be 'original' or 'ground_truth_cropped'. Got: %s" % data_type))
 
@@ -251,9 +254,9 @@ class Pipeline:
 
             yield zip(*output)
 
-    def class_mapper_generator(self, generator, map = lambda clss: settings.CLASS_NAME_TO_INDEX_MAPPING[clss]):
+    def class_mapper_generator(self, generator):
         for x, y in generator:
-            yield x, map(y)
+            yield x, self.class_to_index_mapper(y)
 
     def to_numpy_arrays_generator(self, generator):
         for x, y in generator:
@@ -306,7 +309,7 @@ class Pipeline:
         num_classes = len(class_count)
         
         for clss in class_count:
-            class_weight[settings.CLASS_NAME_TO_INDEX_MAPPING[clss]] = float(num_samples) / class_count[clss] / num_classes
+            class_weight[self.class_to_index_mapper(clss)] = float(num_samples) / class_count[clss] / num_classes
 
         return class_weight
 
@@ -334,7 +337,7 @@ class Pipeline:
             factor = 1.0 / len(class_count)
 
         for clss in class_count:
-            class_weight[settings.CLASS_NAME_TO_INDEX_MAPPING[clss]] = float(m) / class_count[clss] * factor
+            class_weight[self.class_to_index_mapper(clss)] = float(m) / class_count[clss] * factor
 
         return class_weight
 
