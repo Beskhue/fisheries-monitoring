@@ -2,7 +2,7 @@ import keras.preprocessing.image
 import keras.backend as K
 
 
-class Augmentor(ImageDataGenerator):
+class Augmentor(keras.preprocessing.image.ImageDataGenerator):
     """
     Use Keras' Image Data Generator to augment an image
     """
