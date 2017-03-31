@@ -34,7 +34,7 @@ class Pipeline:
         elif data_type == "ground_truth_cropped":
             self.load_precropped_ground_truth()
         elif data_type == "candidates_cropped":
-            self.load_precropped_candidates()
+            self.load_precropped_candidates(dataset = dataset)
         else:
             throw(ValueError("data_type should be 'original' or 'ground_truth_cropped'. Got: %s" % data_type))
 
@@ -42,19 +42,19 @@ class Pipeline:
         """
         Load the data
         """
-        self.data = self.data_loader.get_original_images_and_classes(self.f_middleware, dataset = dataset)
+        self.data = self.data_loader.get_original_images(self.f_middleware, dataset = dataset)
         
     def load_precropped_ground_truth(self):
         """
         Load the pre-cropped data based on the ground-truth bounding boxes
         """
-        self.data = self.data_loader.get_precropped_ground_truth_train_images_and_classes(self.f_middleware)
+        self.data = self.data_loader.get_precropped_ground_truth_train_images(self.f_middleware)
 
     def load_precropped_candidates(self, dataset):
         """
         Load the pre-cropped data based on the candidates
         """
-        self.data = self.data_loader.get_precropped_candidates_images_and_classes(self.f_middleware, dataset = dataset)
+        self.data = self.data_loader.get_precropped_candidates_images(self.f_middleware, dataset = dataset)
     
     def _data_generator(self, xs, ys, metas, infinite = False, shuffle = False):
         """
@@ -419,7 +419,7 @@ class DataLoader:
         
         return candidates
     
-    def get_precropped_ground_truth_train_images_and_classes(self, f_middleware = lambda *x: x[0], file_filter = None):
+    def get_precropped_ground_truth_train_images(self, f_middleware = lambda *x: x[0], file_filter = None):
         """
         Method to load the pre-cropped ground truth train cases.
 
@@ -460,7 +460,7 @@ class DataLoader:
 
         return {'x': x, 'y': y, 'meta': m}
 
-    def get_precropped_candidates_images_and_classes(self, dataset = "train", f_middleware = lambda *x: x[0], file_filter = None):
+    def get_precropped_candidates_images(self, dataset = "train", f_middleware = lambda *x: x[0], file_filter = None):
         """
         Method to load the pre-cropped candidates train cases.
 
