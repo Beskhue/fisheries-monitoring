@@ -14,7 +14,7 @@ from keras.applications import VGG16
 from keras.applications import VGG19
 import scipy.misc
 import numpy as np
-from threadsafe import threadsafe_generator
+import metrics
 
 PRETRAINED_MODELS = {
     "vgg16":     VGG16,
@@ -203,7 +203,7 @@ class TransferLearning(Learning):
         for layer in self.model.layers[n_layers:]:
            layer.trainable = True
 
-        self.model.compile(optimizer=keras.optimizers.SGD(lr=0.0001, momentum=0.9), loss='sparse_categorical_crossentropy', metrics = ['accuracy'])
+        self.model.compile(optimizer=keras.optimizers.SGD(lr=0.0001, momentum=0.9), loss='sparse_categorical_crossentropy', metrics = ['accuracy', metrics.precision, metrics.recall])
         weights_name = self.model_name+'.finetuned'
         
         # Train
@@ -225,7 +225,7 @@ class TransferLearning(Learning):
         self.model.compile(
                 optimizer = 'adam',
                 loss = 'sparse_categorical_crossentropy',
-                metrics = ['accuracy'])
+                metrics = ['accuracy', metrics.precision, metrics.recall])
                 
         weights_name = self.model_name+'.toptrained'
         
