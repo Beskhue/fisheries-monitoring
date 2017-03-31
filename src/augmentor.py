@@ -7,10 +7,10 @@ class Augmentor(keras.preprocessing.image.ImageDataGenerator):
     Use Keras' Image Data Generator to augment an image
     """
 
-    def __init__(self, augmentor):
-        self.augmentor = augmentor
+    def __init__(self, imageDataGenerator):
+        self.imageDataGenerator = imageDataGenerator
 
     def augment(self, x):
-        x = self.augmentor.random_transform(x.astype(K.floatx()))
-        x = self.augmentor.standardize(x)
+        x = self.imageDataGenerator.random_transform(x.astype(K.floatx()))
+        x = self.imageDataGenerator.standardize(x)
         return x
