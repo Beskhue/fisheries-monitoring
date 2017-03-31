@@ -26,34 +26,43 @@ Place the competition data and bounding boxes into a directory structure as foll
 
 ```
 +-- data
-|   +-- bounding_boxes 
-|   |   +-- ALB.json
-|   |   +-- BET.json
+|   +-- train
+|   |   +-- original
+|   |   |   +-- ALB
+|   |   |   |   +-- img_00003.jpg
+|   |   |   |       ...
+|   |   |   +-- BET
+|   |   |       ...
+|   |   +-- bounding_boxes_ground_truth
+|   |   |   +-- ALB.json
+|   |   |   +-- BET.json
 |   |       ...
-|   +-- candidates
-|   |   +-- train
+|   |   +-- bounding_boxes_candidates
 |   |   |   +-- ALB_candidates_0-x.json
 |   |   |   +-- ALB_candidates_x-y.json
 |   |   |       ...
-|   +-- cropped_candidates
-|   |   +-- train
+|   |   +-- cropped_ground_truth
+|   |   |   +-- ALB
+|   |   |   |   +-- img_1.jpg
+|   |   |   |       ...
+|   |   |   +-- BET
+|   |   |       ...
+|   |   +-- cropped_candidates
 |   |   |   +-- negative
 |   |   |   |   +-- img_110.jpg
 |   |   |   |       ...
 |   |   |   +-- positive
-|   |   +-- test
-|   +-- cropped_train
-|   |   +-- ALB
+|   +-- test
+|   |   +-- original
+|   |   |   +-- img_00001.jpg
+|   |   |       ...
+|   |   +-- bounding_boxes_candidates
+|   |   |   +-- candidates_0-x.json
+|   |   |   +-- candidates_x-y.json
+|   |   |       ...
+|   |   +-- cropped_candidates
 |   |   |   +-- img_1.jpg
 |   |   |       ...
-|   |   +-- BET
-|   |       ...
-|   +-- train
-|   |   +-- ALB
-|   |   |   +-- img_00003.jpg
-|   |   |       ...
-|   |   +-- BET
-|   |       ...
 |   +-- weights
 |   |   +-- fishnofish.ext_xception.toptrained.e001-tloss0.3366-vloss0.2445.hdf5
 |   |       ...
@@ -80,7 +89,7 @@ Prepare the training image crops, including colorization through histogram match
 python src/main.py crop-images train --crop-type=ground_truth
 ```
 
-This will take roughly half an hour to complete. Note that multiple crops can be generated per input image, if multiple fish are present. The images are placed in `output/crops/_timestamp_/`. Once the process is complete, move the generated crops to `data/cropped_train`.
+This will take roughly half an hour to complete. Note that multiple crops can be generated per input image, if multiple fish are present. The images are placed in `output/crops/_timestamp_/`. Once the process is complete, move the generated crops to `data/train/cropped_ground_truth`.
 
 ## Prepare fish region candidates
 
@@ -109,7 +118,7 @@ Prepare the fish region candidate crops, including colorization through histogra
 python src/main.py crop-images train --crop-type=candidates
 ```
 
-Many crops will be generated per image, and will be labeled either "negative" or "positive" using the ground truth bounding boxes. The images are placed in `output/crops/_timestamp_/`. Once the process is complete, move the generated crops to `data/cropped_candidates`.
+Many crops will be generated per image, and will be labeled either "negative" or "positive" using the ground truth bounding boxes. The images are placed in `output/crops/_timestamp_/`. Once the process is complete, move the generated crops to `data/train/cropped_candidates`.
 
 
 # Using the project to train a fish classifier from scratch

@@ -347,7 +347,7 @@ class DataLoader:
         :return: A list of classes present in the training set.
         """
 
-        return os.listdir(settings.TRAIN_DIR)
+        return os.listdir(settings.TRAIN_ORIGINAL_IMAGES_DIR)
 
     def get_bounding_boxes(self):
         """
@@ -364,7 +364,7 @@ class DataLoader:
 
             bounding_boxes[clss] = {}
 
-            filename = os.path.join(settings.TRAIN_BOUNDING_BOXES_DIR, clss + ".json")
+            filename = os.path.join(settings.TRAIN_GROUND_TRUTH_BOUNDING_BOXES_DIR, clss + ".json")
 
             with open(filename) as data_file:
                 data = json.load(data_file)
@@ -391,7 +391,7 @@ class DataLoader:
             print('Unknown candidate data set: ' + dataset)
             exit()
 
-        for cand_file_name in glob.glob(os.path.join(settings.CANDIDATES_INPUT_DIR, dataset, '*.json')):
+        for cand_file_name in glob.glob(os.path.join(settings.TRAIN_CANDIDATES_BOUNDING_BOXES_DIR, dataset, '*.json')):
             with open(cand_file_name) as data_file:
                 data = json.load(data_file)
                 for d in data:
@@ -430,7 +430,7 @@ class DataLoader:
             if clss in self.class_filter:
                 continue
 
-            dir = os.path.join(settings.CROPPED_GROUND_TRUTH_TRAIN_DIR, clss)
+            dir = os.path.join(settings.TRAIN_GROUND_TRUTH_CROPPED_IMAGES_DIR, clss)
 
             filenames = glob.glob(os.path.join(dir, "*.jpg"))
             for filename in filenames:
@@ -473,9 +473,9 @@ class DataLoader:
                 continue
 
             if dataset == "train":
-                dir = os.path.join(settings.CROPPED_CANDIDATES_TRAIN_DIR, clss)
+                dir = os.path.join(settings.TRAIN_CANDIDATES_CROPPED_IMAGES_DIR, clss)
             elif dataset == "test":
-                dir = os.path.join(settings.CROPPED_CANDIDATES_TEST_DIR, clss)
+                dir = os.path.join(settings.TEST_CANDIDATES_CROPPED_IMAGES_DIR, clss)
 
             filenames = glob.glob(os.path.join(dir, "*.jpg"))
             for filename in filenames:
@@ -522,7 +522,7 @@ class DataLoader:
                 if clss in self.class_filter:
                     continue
 
-                dir = os.path.join(settings.TRAIN_DIR, clss)
+                dir = os.path.join(settings.TRAIN_ORIGINAL_IMAGES_DIR, clss)
 
                 filenames = glob.glob(os.path.join(dir, "*.jpg"))
                 for filename in filenames:
@@ -546,7 +546,7 @@ class DataLoader:
             return {'x': x, 'y': y, 'meta': m}
 
         elif dataset == "test":
-            for filename in glob.glob(os.path.join(settings.TEST_DIR, '*.jpg')):
+            for filename in glob.glob(os.path.join(settings.TEST_ORIGINAL_IMAGES_DIR, '*.jpg')):
                 name = self.get_file_name_part(filename)
             
                 if file_filter is not None and name not in file_filter:

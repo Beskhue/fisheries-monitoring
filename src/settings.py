@@ -14,12 +14,18 @@ OUTPUT_DIR = os.path.join(ROOT_DIR, "output")
 ## Input directories
 
 TRAIN_DIR = os.path.join(DATA_DIR, "train")
-CROPPED_GROUND_TRUTH_TRAIN_DIR = os.path.join(DATA_DIR, "cropped_train")
-CROPPED_CANDIDATES_TRAIN_DIR = os.path.join(DATA_DIR, "cropped_candidates", "train")
-CROPPED_CANDIDATES_TEST_DIR = os.path.join(DATA_DIR, "cropped_candidates", "test")
-TRAIN_BOUNDING_BOXES_DIR = os.path.join(DATA_DIR, "bounding_boxes")
-CANDIDATES_INPUT_DIR = os.path.join(DATA_DIR, "candidates")
 TEST_DIR = os.path.join(DATA_DIR, "test")
+
+TRAIN_ORIGINAL_IMAGES_DIR               = os.path.join(TRAIN_DIR, "original")
+TRAIN_GROUND_TRUTH_CROPPED_IMAGES_DIR   = os.path.join(TRAIN_DIR, "cropped_ground_truth")
+TRAIN_CANDIDATES_CROPPED_IMAGES_DIR     = os.path.join(TRAIN_DIR, "cropped_candidates")
+TRAIN_GROUND_TRUTH_BOUNDING_BOXES_DIR   = os.path.join(TRAIN_DIR, "bounding_boxes_ground_truth")
+TRAIN_CANDIDATES_BOUNDING_BOXES_DIR     = os.path.join(TRAIN_DIR, "bounding_boxes_candidates")
+
+TEST_ORIGINAL_IMAGES_DIR                = os.path.join(TEST_DIR, "original")
+TEST_CANDIDATES_CROPPED_IMAGES_DIR      = os.path.join(TEST_DIR, "cropped_candidates")
+TEST_CANDIDATES_BOUNDING_BOXES_DIR      = os.path.join(TEST_DIR, "bounding_boxes_candidates")
+
 WEIGHTS_DIR = os.path.join(DATA_DIR, "weights")
 TENSORBOARD_LOGS_DIR = os.path.join(DATA_DIR, 'tb_logs')
 
