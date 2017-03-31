@@ -56,7 +56,7 @@ class Learning:
         """
         self.generators = self.pl.data_generator_builder(
             *self.generator_chain,
-            infinite = True, shuffle = True,)
+            infinite = True, shuffle = True)
 
     def set_train_val_generators(self):
         """
