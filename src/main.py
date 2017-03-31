@@ -19,6 +19,21 @@ def example():
     print("First image meta information:")
     pprint.pprint(meta[0])
 
+def example_train_and_validation_split():
+    """
+    Run the pipeline example (tests if the pipeline runs succesfully, should produce summary output of the first batch and first case in that batch).
+    """
+
+    pl = pipeline.Pipeline(data_type = "candidates_cropped")
+
+    generator = pl.train_and_validation_data_generator_builder(pl.mini_batch_generator, balance = True)
+
+    x, y, meta = next(generator['train'])
+    print("Number of cases in first batch: %s" % len(x))
+    print("First image shape and label: %s - %s" % (str(x[0].shape), y[0]))
+    print("First image meta information:")
+    pprint.pprint(meta[0])
+
 def example_crop_plot():
     import scipy
 
@@ -98,7 +113,7 @@ def train_top_fish_or_no_fish_network():
 
     import network
 
-    tl = network.TransferLearningFishOrNoFish(data_type = "candidates_cropped")
+    tl = network.TransferLearningFishOrNoFish(class_balance_method = "batch", data_type = "candidates_cropped")
 
     tl.build('xception', summary = False)
     tl.train_top(epochs = 70)
@@ -297,6 +312,7 @@ def crop_images(dataset, *,
 
 if __name__ == "__main__":
     run(example,
+        example_train_and_validation_split,
         example_crop_plot,
         train_network,
         train_top_xception_network,
