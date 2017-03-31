@@ -127,7 +127,7 @@ def convert_annotations_to_darknet(single_class = False):
     import darknet
 
     dl = pipeline.DataLoader()
-    train_imgs = dl.get_train_images_and_classes()
+    train_imgs = dl.get_original_images()
     darknet.save_annotations_for_darknet(train_imgs, single_class = single_class)
 
 def crop_images(dataset, *, 
@@ -158,9 +158,9 @@ def crop_images(dataset, *,
     dl = pipeline.DataLoader()
     
     if dataset == 'train':
-        data = dl.get_train_images_and_classes()
+        data = dl.get_original_images(dataset = "train")
     elif dataset == 'test':
-        data = dl.get_test_images()
+        data = dl.get_original_images(dataset = "test")
     elif dataset == 'final':
         print("Final data set support pending")
         exit()
@@ -177,7 +177,7 @@ def crop_images(dataset, *,
     if not no_histogram_matching:
         import colour
         print("Applying histogram matching. Preparing template...")
-        hist_template_data_imgs = dl.get_train_images_and_classes(file_filter=preprocessing.DEFAULT_HIST_MATCH_TEMPLATES)
+        hist_template_data_imgs = dl.get_original_images(file_filter=preprocessing.DEFAULT_HIST_MATCH_TEMPLATES)
         template = preprocessing.build_template(hist_template_data_imgs['x'], hist_template_data_imgs['meta'])
         print("Template prepared")
     

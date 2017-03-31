@@ -18,11 +18,11 @@ from threadsafe import threadsafe_generator
 
 class Pipeline:
 
-    def __init__(self, data_type = "original", class_filter = [], f_middleware = lambda *x: x[0]):
+    def __init__(self, data_type = "original", dataset = "train", class_filter = [], f_middleware = lambda *x: x[0]):
         """
         Pipeline initialization.
 
-        :param data_type: The source data the pipeline should use ("original", "ground_truth_cropped")
+        :param data_type: The source data the pipeline should use ("original", "ground_truth_cropped", "candidates_cropped")
         :param class_filter: A list of classes to ignore (i.e., they won't be loaded)
         :param f_middleware: A function to execute on the loaded raw image, its class and the meta-inform
         """
@@ -30,23 +30,31 @@ class Pipeline:
         self.data_loader = DataLoader(class_filter)
 
         if data_type == "original":
-            self.load_original()
+            self.load_original(dataset = dataset)
         elif data_type == "ground_truth_cropped":
             self.load_precropped_ground_truth()
+        elif data_type == "candidates_cropped":
+            self.load_precropped_candidates()
         else:
             throw(ValueError("data_type should be 'original' or 'ground_truth_cropped'. Got: %s" % data_type))
 
-    def load_original(self):
+    def load_original(self, dataset):
         """
         Load the data
         """
-        self.data = self.data_loader.get_train_images_and_classes(self.f_middleware)
+        self.data = self.data_loader.get_original_images_and_classes(self.f_middleware, dataset = dataset)
         
     def load_precropped_ground_truth(self):
         """
-        Load the pre-cropped data
+        Load the pre-cropped data based on the ground-truth bounding boxes
         """
-        self.data = self.data_loader.get_precropped_train_images_and_classes(self.f_middleware)
+        self.data = self.data_loader.get_precropped_ground_truth_train_images_and_classes(self.f_middleware)
+
+    def load_precropped_candidates(self, dataset):
+        """
+        Load the pre-cropped data based on the candidates
+        """
+        self.data = self.data_loader.get_precropped_candidates_images_and_classes(self.f_middleware, dataset = dataset)
     
     def _data_generator(self, xs, ys, metas, infinite = False, shuffle = False):
         """
@@ -411,7 +419,7 @@ class DataLoader:
         
         return candidates
     
-    def get_precropped_train_images_and_classes(self, f_middleware = lambda *x: x[0], file_filter = None):
+    def get_precropped_ground_truth_train_images_and_classes(self, f_middleware = lambda *x: x[0], file_filter = None):
         """
         Method to load the pre-cropped ground truth train cases.
 
@@ -428,14 +436,56 @@ class DataLoader:
         x = []
         m = []
 
-        bounding_boxes = self.get_bounding_boxes()
-        candidates = self.get_candidates(dataset='train')
+        for clss in classes:
+            if clss in self.class_filter:
+                continue
+
+            dir = os.path.join(settings.CROPPED_GROUND_TRUTH_TRAIN_DIR, clss)
+
+            filenames = glob.glob(os.path.join(dir, "*.jpg"))
+            for filename in filenames:
+                name = self.get_file_name_part(filename)
+                
+                if file_filter is not None and name not in file_filter:
+                    continue
+
+                meta = {}
+                meta['filename'] = name
+                meta['class'] = clss
+
+                x.append((lambda filename, clss, meta: lambda: f_middleware(self.load(filename), clss, meta))(filename, clss, meta))
+                y.append(clss)
+                m.append(meta)
+
+
+        return {'x': x, 'y': y, 'meta': m}
+
+    def get_precropped_candidates_images_and_classes(self, dataset = "train", f_middleware = lambda *x: x[0], file_filter = None):
+        """
+        Method to load the pre-cropped candidates train cases.
+
+        :param dataset: The dataset to get data for (train, test)
+        :param f_middleware: A function to execute on the loaded raw image, its class and the meta-information
+                             right after loading it. Should return the (pre-processed) image.
+        :param file_filter: A list of file names (in the form of 'img_01234') to limit the output to.
+
+        :return: A dictionary containing the list of classes (y) and list of (function to load) images (x), as well
+                 as a list of meta information for each image (meta).
+        """
+
+        classes = self.get_classes()
+        y = []
+        x = []
+        m = []
 
         for clss in classes:
             if clss in self.class_filter:
                 continue
 
-            dir = os.path.join(settings.CROPPED_TRAIN_DIR, clss)
+            if dataset == "train":
+                dir = os.path.join(settings.CROPPED_CANDIDATES_TRAIN_DIR, clss)
+            elif dataset == "test":
+                dir = os.path.join(settings.CROPPED_CANDIDATES_TEST_DIR, clss)
 
             filenames = glob.glob(os.path.join(dir, "*.jpg"))
             for filename in filenames:
@@ -455,10 +505,11 @@ class DataLoader:
 
         return {'x': x, 'y': y, 'meta': m}
     
-    def get_train_images_and_classes(self, f_middleware = lambda *x: x[0], file_filter = None):
+    def get_original_images(self, dataset = "train", f_middleware = lambda *x: x[0], file_filter = None):
         """
         Method to load the original train cases.
 
+        :param dataset: The dataset to get data for (train, test)
         :param f_middleware: A function to execute on the loaded raw image, its class and the meta-information
                              right after loading it. Should return the (pre-processed) image.
         :param file_filter: A list of file names (in the form of 'img_01234') to limit the output to.
@@ -471,67 +522,55 @@ class DataLoader:
         x = []
         m = []
 
-        bounding_boxes = self.get_bounding_boxes()
-        candidates = self.get_candidates(dataset='train')
+        if dataset == "train":
+            bounding_boxes = self.get_bounding_boxes()
+        
+        candidates = self.get_candidates(dataset = dataset)
 
-        for clss in classes:
-            if clss in self.class_filter:
-                continue
-
-            dir = os.path.join(settings.TRAIN_DIR, clss)
-
-            filenames = glob.glob(os.path.join(dir, "*.jpg"))
-            for filename in filenames:
-                name = self.get_file_name_part(filename)
-                
-                if file_filter is not None and name not in file_filter:
+        if dataset == "train":
+            for clss in classes:
+                if clss in self.class_filter:
                     continue
 
+                dir = os.path.join(settings.TRAIN_DIR, clss)
+
+                filenames = glob.glob(os.path.join(dir, "*.jpg"))
+                for filename in filenames:
+                    name = self.get_file_name_part(filename)
+                
+                    if file_filter is not None and name not in file_filter:
+                        continue
+
+                    meta = {}
+                    meta['filename'] = name
+                    meta['class'] = clss
+                    if clss != "NoF":
+                        meta['bounding_boxes'] = bounding_boxes[clss][name]
+                    if name in candidates[clss]:
+                        meta['candidates'] = candidates[clss][name]
+
+                    x.append((lambda filename, clss, meta: lambda: f_middleware(self.load(filename), clss, meta))(filename, clss, meta))
+                    y.append(clss)
+                    m.append(meta)
+
+            return {'x': x, 'y': y, 'meta': m}
+
+        elif dataset == "test":
+            for filename in glob.glob(os.path.join(settings.TEST_DIR, '*.jpg')):
+                name = self.get_file_name_part(filename)
+            
+                if file_filter is not None and name not in file_filter:
+                    continue
+            
                 meta = {}
                 meta['filename'] = name
-                meta['class'] = clss
-                if clss != "NoF":
-                    meta['bounding_boxes'] = bounding_boxes[clss][name]
-                if name in candidates[clss]:
-                    meta['candidates'] = candidates[clss][name]
-
-                x.append((lambda filename, clss, meta: lambda: f_middleware(self.load(filename), clss, meta))(filename, clss, meta))
-                y.append(clss)
+                if name in candidates:
+                    meta['candidates'] = candidates[name]
+            
+                x.append((lambda filename, meta: lambda: f_middleware(self.load(filename), meta))(filename, meta))
                 m.append(meta)
-
-
-        return {'x': x, 'y': y, 'meta': m}
-    
-    def get_test_images(self, f_middleware = lambda *x: x[0], file_filter = None):
-        """
-        Method to load the train cases.
-
-        :param f_middleware: A function to execute on the loaded raw image, its class and the meta-information
-                             right after loading it. Should return the (pre-processed) image.
-        :param file_filter: A list of file names (in the form of 'img_01234') to limit the output to.
-        :return: A dictionary containing the list of classes (y) and list of (function to load) images (x), as well
-                 as a list of meta information for each image (meta).
-        """
-        x = []
-        m = []
         
-        candidates = self.get_candidates(dataset='test')
-        
-        for filename in glob.glob(os.path.join(settings.TEST_DIR, '*.jpg')):
-            name = self.get_file_name_part(filename)
-            
-            if file_filter is not None and name not in file_filter:
-                continue
-            
-            meta = {}
-            meta['filename'] = name
-            if name in candidates:
-                meta['candidates'] = candidates[name]
-            
-            x.append((lambda filename, meta: lambda: f_middleware(self.load(filename), meta))(filename, meta))
-            m.append(meta)
-        
-        return {'x': x, 'meta': m}
+            return {'x': x, 'meta': m}
 
     def load(self, filename):
         """
