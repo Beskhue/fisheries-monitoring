@@ -25,6 +25,8 @@ TRAIN_CANDIDATES_BOUNDING_BOXES_DIR     = os.path.join(TRAIN_DIR, "bounding_boxe
 TEST_ORIGINAL_IMAGES_DIR                = os.path.join(TEST_DIR, "original")
 TEST_CANDIDATES_CROPPED_IMAGES_DIR      = os.path.join(TEST_DIR, "cropped_candidates")
 TEST_CANDIDATES_BOUNDING_BOXES_DIR      = os.path.join(TEST_DIR, "bounding_boxes_candidates")
+TEST_FISH_OR_NO_FISH_CLASSIFICATION_DIR = os.path.join(TEST_DIR, "fish_or_no_fish_classification")
+TEST_FISH_TYPE_CLASSIFICATION_DIR       = os.path.join(TEST_DIR, "fish_type_classification")
 
 WEIGHTS_DIR = os.path.join(DATA_DIR, "weights")
 TENSORBOARD_LOGS_DIR = os.path.join(DATA_DIR, 'tb_logs')
@@ -74,3 +76,7 @@ AUGMENTATION_HORIZONTAL_FLIP = True
 AUGMENTATION_VERTICAL_FLIP = True
 AUGMENTATION_CHANNEL_SHIFT_RANGE = 25.0
 AUGMENTATION_BLUR_RANGE = [0., 2.5]
+
+## Classification settings
+FISH_OR_NO_FISH_NETWORK_WEIGHT_NAME = "fishnofish.ext_xception.toptrained.e001-tloss0.3366-vloss0.2445"
+BOUNDING_BOX_CLASSIFICATION_WEIGHT_NAME = "classification.ext_xception_toptrained.hdf5"
