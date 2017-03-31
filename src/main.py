@@ -1,5 +1,6 @@
 import os
 import pprint
+import json
 from clize import run, parameters
 import pipeline
 import settings
@@ -276,11 +277,14 @@ def crop_images(dataset, *,
     classes_encountered = []
     n = 0
     n_img = 0
+    img_file_name_to_crop_file_name = {}
 
     for img, meta in zip(imgs, metas):
         # Load image
         img = img()
         
+        img_file_name_to_crop_file_name[meta['filename']] = []
+
         n_img += 1
         if n_img % 100 == 0:
             print('Cropped %d images...' % n_img)
@@ -333,8 +337,11 @@ def crop_images(dataset, *,
                 else:
                     outcls = "test"
             
+            file_name = "img_%s.jpg" % n
             class_dir = os.path.join(settings.CROPS_OUTPUT_DIR, outcls)
-            file_path = os.path.join(class_dir, "img_%s.jpg" % n)
+            file_path = os.path.join(class_dir, file_name)
+
+            img_file_name_to_crop_file_name[meta['filename']].append(file_name)
 
             # Create directory for class if it does not exist yet
             if outcls not in classes_encountered:
@@ -344,6 +351,9 @@ def crop_images(dataset, *,
 
             # Save the crop to file
             imsave(file_path, crop)
+
+    with open(os.path.join(settings.CROPS_OUTPUT_DIR, "_keys.json"), 'w') as outfile:
+        json.dump(img_file_name_to_crop_file_name, outfile)
     
     print("All images cropped.")
 
