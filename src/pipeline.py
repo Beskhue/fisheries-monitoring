@@ -59,6 +59,9 @@ class Pipeline:
         """
         self.data = self.data_loader.get_precropped_candidates_images(dataset = dataset, f_middleware = self.f_middleware)
     
+    def get_data(self):
+        return self.data
+
     def _data_generator(self, xs, ys, metas, infinite = False, shuffle = False):
         """
         A generator to yield (loaded) images, targets and meta information.
