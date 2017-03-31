@@ -25,8 +25,13 @@ PRETRAINED_MODELS = {
 }
 
 class Learning:
-    def __init__(self, mini_batch_size = 32, data_type = "original", class_filter = [], tensor_board = True, validate = True):
+    def __init__(self, class_balance_method = "weights", mini_batch_size = 32, data_type = "original", class_filter = [], tensor_board = True, validate = True):
+        """
+        :param class_balance_method: None, "weights", or "batch"
+        """
+
         self.model = None
+        self.class_balance_method = class_balance_method
         self.mini_batch_size = mini_batch_size
         self.tensor_board = tensor_board
         self.validate = validate
@@ -58,7 +63,9 @@ class Learning:
         """
         self.generators = self.pl.train_and_validation_data_generator_builder(
             *self.generator_chain,
-            infinite = True, shuffle = True,)
+            balance = self.class_balance_method == "batch",
+            infinite = True,
+            shuffle = True)
 
     @abc.abstractmethod
     def build(self):
@@ -79,8 +86,9 @@ class Learning:
         else:
             self.set_full_generator()
 
-        # Calculate class weights
-        class_weights = self.pl.class_reciprocal_weights()
+        if self.class_balance_method == "weights":
+            # Calculate class weights
+            class_weights = self.pl.class_reciprocal_weights()
 
         callbacks_list = []
 
@@ -115,7 +123,7 @@ class Learning:
             epochs = epochs,
             validation_data = self.generators['validate'] if self.validate else None,
             validation_steps = int(0.3*3299/self.mini_batch_size) if self.validate else None,
-            class_weight = class_weights,
+            class_weight = class_weights if self.class_balance_method == "weights" else None,
             workers = 2,
             callbacks = callbacks_list)
 

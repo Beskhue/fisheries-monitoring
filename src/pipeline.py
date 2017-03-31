@@ -147,43 +147,30 @@ class Pipeline:
             for x, y, meta in zip(x_validate, y_validate, meta_validate):
                 class_to_validate_data[y].append((x, y, meta))
 
-            def train_generator():
+            def balanced_generator_build(class_to_data):
                 # Create a list of infinite generators for the data in each seperate class
                 generators = []
 
-                for clss in class_to_train_data:
-                    generators.append(data_gen(*class_to_train_data[clss]))
+                for clss in class_to_data:
+                    x, y, meta = zip(*class_to_data[clss])
+                    generators.append(data_gen(x, y, meta))
 
-                for generator in generators:
-                    yield next(generator)
-
-            def validate_generator():
-                # Create a list of infinite generators for the data in each seperate class
-                generators = []
-
-                for clss in class_to_validate_data:
-                    generators.append(data_gen(*class_to_validate_data[clss]))
-
-                for generator in generators:
-                    yield next(generator)
+                # Continuously yield from the various generators in a balanced way
+                while 1:
+                    for generator in generators:
+                        try: 
+                            yield next(generator)
+                        except:
+                            # Generator is done (only happens if it isn't an infinite generator), so quit
+                            break
 
             return {
-                'train': self._chain_generators(train_generator(), *generators),
-                'validate': self._chain_generators(validate_generator(), *generators)
+                'train': self._chain_generators(balanced_generator_build(class_to_train_data), *generators),
+                'validate': self._chain_generators(balanced_generator_build(class_to_validate_data), *generators)
                 }
 
         else:
             # We don't want to balance the classes
-
-            def train_generator():
-                while 1:
-                    for x, y, meta in zip(x_train, y_train, meta_train):
-                        yield x, y, meta
-
-            def validate_generator():
-                while 1:
-                    for x, y, meta in zip(x_validate, y_validate, meta_validate):
-                        yield x, y, meta
 
             return {
                 'train': self._chain_generators(data_gen(x_train, y_train, meta_train), *generators),
