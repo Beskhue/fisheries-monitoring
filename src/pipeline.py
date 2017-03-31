@@ -473,7 +473,7 @@ class DataLoader:
                  as a list of meta information for each image (meta).
         """
 
-        classes = self.get_classes()
+        classes = ["positive", "negative"]
         y = []
         x = []
         m = []
