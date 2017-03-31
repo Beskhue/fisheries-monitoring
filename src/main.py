@@ -26,13 +26,23 @@ def example_train_and_validation_split():
 
     pl = pipeline.Pipeline(data_type = "candidates_cropped")
 
-    generator = pl.train_and_validation_data_generator_builder(pl.mini_batch_generator, balance = True)
+    generator = pl.train_and_validation_data_generator_builder(pl.mini_batch_generator, balance = True, infinite = True)
 
     x, y, meta = next(generator['train'])
     print("Number of cases in first batch: %s" % len(x))
     print("First image shape and label: %s - %s" % (str(x[0].shape), y[0]))
     print("First image meta information:")
     pprint.pprint(meta[0])
+
+    print("Class counts:")
+    class_counts = {}
+    for clss in y:
+        if clss not in class_counts:
+            class_counts[clss] = 0
+
+        class_counts[clss] += 1
+
+    pprint.pprint(class_counts)
 
 def example_crop_plot():
     import scipy
