@@ -84,7 +84,7 @@ def yuv2rgb(arr):
     arr = skimage.util.dtype.img_as_float(arr)
     return clamp(np.dot(arr, rgb_from_yuv.T.copy()))
 
-def zoom_box(bounding_box, img_shape, zoom_factor = 0.7):
+def zoom_box(bounding_box, img_shape, zoom_factor = 0.7, output_dict=False):
     (size_y, size_x, channels) = img_shape
     
     zoom_out_factor = 1 / zoom_factor
@@ -132,7 +132,10 @@ def zoom_box(bounding_box, img_shape, zoom_factor = 0.7):
     elif box_y + box_h > size_y:
         box_y = size_y - box_h
     
-    return box_x, box_x + box_w, box_y, box_y + box_h
+    if output_dict:
+        return {'x': box_x, 'width': box_w, 'y': box_y, 'height': box_h}
+    else:
+        return box_x, box_x + box_w, box_y, box_y + box_h
 
 def crop(img, bounding_boxes, out_size = (300, 300), zoom_factor = 0.7):
     """
