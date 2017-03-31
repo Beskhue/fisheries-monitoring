@@ -42,7 +42,7 @@ class Pipeline:
         """
         Load the data
         """
-        self.data = self.data_loader.get_original_images(self.f_middleware, dataset = dataset)
+        self.data = self.data_loader.get_original_images(dataset = dataset, f_middleware = self.f_middleware)
         
     def load_precropped_ground_truth(self):
         """
@@ -54,7 +54,7 @@ class Pipeline:
         """
         Load the pre-cropped data based on the candidates
         """
-        self.data = self.data_loader.get_precropped_candidates_images(self.f_middleware, dataset = dataset)
+        self.data = self.data_loader.get_precropped_candidates_images(dataset = dataset, f_middleware = self.f_middleware)
     
     def _data_generator(self, xs, ys, metas, infinite = False, shuffle = False):
         """
