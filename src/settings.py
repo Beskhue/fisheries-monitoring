@@ -15,7 +15,9 @@ OUTPUT_DIR = os.path.join(ROOT_DIR, "output")
 ## Input directories
 
 TRAIN_DIR = os.path.join(DATA_DIR, "train")
-CROPPED_TRAIN_DIR = os.path.join(DATA_DIR, "cropped_train")
+CROPPED_GROUND_TRUTH_TRAIN_DIR = os.path.join(DATA_DIR, "cropped_train")
+CROPPED_CANDIDATES_TRAIN_DIR = os.path.join(DATA_DIR, "cropped_candidates", "train")
+CROPPED_CANDIDATES_TEST_DIR = os.path.join(DATA_DIR, "cropped_candidates", "test")
 TRAIN_BOUNDING_BOXES_DIR = os.path.join(DATA_DIR, "bounding_boxes")
 CANDIDATES_INPUT_DIR = os.path.join(DATA_DIR, "candidates")
 TEST_DIR = os.path.join(DATA_DIR, "test")
@@ -27,6 +29,7 @@ TENSORBOARD_LOGS_DIR = os.path.join(DATA_DIR, 'tb_logs')
 CONVERTED_BOUNDING_BOX_OUTPUT_DIR = os.path.join(OUTPUT_DIR, "bounding_boxes", strftime("%Y%m%dT%H%M%S"))
 SEGMENTATION_CANDIDATES_OUTPUT_DIR = os.path.join(OUTPUT_DIR, "candidates", strftime("%Y%m%dT%H%M%S"))
 CROPS_OUTPUT_DIR = os.path.join(OUTPUT_DIR, "crops", strftime("%Y%m%dT%H%M%S"))
+WEIGHTS_OUTPUT_DIR = os.path.join(OUTPUT_DIR, "weights", strftime("%Y%m%dT%H%M%S"))
 
 # Problem-specific settings
 

@@ -2,6 +2,8 @@
 Module to train and use neural networks.
 """
 import os
+import abc
+import functools
 import pipeline
 import settings
 import keras
@@ -21,75 +23,50 @@ PRETRAINED_MODELS = {
     "xception":  Xception,
     "resnet":    ResNet50
 }
-class TransferLearning:
-	
-    def __init__(self):
-        """
-        TransferLearning initialization.
-        """
-        self.base_model = None
-        self.base_model_name = None
-        self.extended_model = None
-        self.extended_model_name = None
+
+class Learning:
+    def __init__(self, mini_batch_size = 32, data_type = "original", class_filter = [], tensor_board = True, validate = True):
+        self.model = None
+        self.mini_batch_size = mini_batch_size
+        self.tensor_board = tensor_board
+        self.validate = validate
+
+        self.pl = pipeline.Pipeline(data_type = data_type, class_filter = class_filter)
+
         self.generators = {}
-        self.pipeline = pipeline.Pipeline(class_filter = ["NoF"])
-    
-    def set_full_generator(self, mini_batch_size):
+        self.generator_chain = [
+            self.pl.augmented_generator,
+            self.pl.drop_meta_generator,
+            self.pl.class_mapper_generator,
+            functools.partial(self.pl.mini_batch_generator, mini_batch_size = mini_batch_size),
+            self.pl.to_numpy_arrays_generator
+        ]
+
+    def set_full_generator(self):
         """
         Add a data augmented generator over all dataset (without train
         validation splitting) to the generators dictionary
-        
-        :param mini_batch_size: size of the mini batches
         """
-        self.generators.update(self.pipeline.augmented_full_generator_generator(mini_batch_size = mini_batch_size))
-    
-    def set_train_val_generators(self, mini_batch_size):
+        self.generators = self.pl.data_generator_builder(
+            *self.generator_chain,
+            infinite = True, shuffle = True,)
+
+    def set_train_val_generators(self):
         """
         Add the train and validation data augmented generators to the 
         generators dictionary
-        
-        :param mini_batch_size: size of the mini batches
         """
-        self.generators.update(self.pipeline.augmented_train_and_validation_generator_generator(mini_batch_size = mini_batch_size))
+        self.generators = self.pl.train_and_validation_data_generator_builder(
+            *self.generator_chain,
+            infinite = True, shuffle = True,)
 
-    def build(self, base_model_name, extended_model_name = None, summary = False):
+    @abc.abstractmethod
+    def build(self):
+        throw(NotImplemented("Must be implemented by child class."))
+
+    def train(self, epochs, weights_name):
         """
-        Build an extended model. A base model is first loaded disregarding its last layers and afterwards
-        some new layers are stacked on top so the resulting model would be applicable to the
-        fishering-monitoring problem
-        
-        :param base_model_name: model name to load and use as base model (`"vgg16"`,`"vgg19"`,`"inception"`,`"xception"`,`"resnet"`).
-        :param extended_model_name: name for the extended model. It will affect only to the weights file to write on disk
-        :param summary: whether to print the summary of the extended model
-        """
-
-        # Set the base model configuration and extended model name
-        self.base_model_name = base_model_name
-        self.base_model = PRETRAINED_MODELS[self.base_model_name](weights = 'imagenet', include_top = False)
-        if not extended_model_name:
-            extended_model_name = 'ext_' + base_model_name
-
-        self.extended_model_name = extended_model_name
-
-        # Extend the base model
-        print("Building %s using %s as the base model..." % (self.extended_model_name, self.base_model_name))
-
-        x = self.base_model.output
-        x = keras.layers.GlobalAveragePooling2D()(x)
-        x = keras.layers.Dense(1024, activation='relu')(x)
-        predictions = keras.layers.Dense(7, activation='softmax')(x)
-
-        # This is the model we will train:
-        self.extended_model = keras.models.Model(input=self.base_model.input, output=predictions)
-        
-        print("Done building the model.")
-
-        if summary:
-            print(self.extended_model.summary())
-            
-    def train(self, epochs, mini_batch_size, weights_name):
-        """
-        Train the (previously loaded/set) extended model. It is assumed that the `extended_model` object
+        Train the (previously loaded/set) model. It is assumed that the `model` object
         has been already configured (such as which layers of it are frozen and which not)
         
         :param epochs: the number of training epochs
@@ -97,40 +74,105 @@ class TransferLearning:
         :param weights_name: name for the h5py weights file to be written in the output folder
         """
         
-        self.set_train_val_generators(mini_batch_size = mini_batch_size)
-           
+        if self.validate:
+            self.set_train_val_generators()
+        else:
+            self.set_full_generator()
+
         # Calculate class weights
-        class_weights = self.pipeline.class_reciprocal_weights()
+        class_weights = self.pl.class_reciprocal_weights()
+
+        callbacks_list = []
+
+        # Create weight output dir if it does not exist
+        if not os.path.exists(settings.WEIGHTS_OUTPUT_DIR):
+            os.makedirs(settings.WEIGHTS_OUTPUT_DIR)
 
         # Save the model with best validation accuracy during training
-        weights_path = os.path.join(settings.WEIGHTS_DIR, weights_name)
+        weights_name = weights_name + ".e{epoch:03d}-tloss{loss:.4f}-vloss{val_loss:.4f}.hdf5"
+        weights_path = os.path.join(settings.WEIGHTS_OUTPUT_DIR, weights_name)
         checkpoint = keras.callbacks.ModelCheckpoint(
             weights_path,
-            monitor = 'val_acc',
+            monitor = 'val_loss',
             verbose=1,
-            save_best_only = False,
-            mode = 'max')
+            save_best_only = True,
+            mode = 'min')
+        callbacks_list.append(checkpoint)
                  
-        # Output tensorboard logs
-        tf_logs = keras.callbacks.TensorBoard(
-            log_dir = settings.TENSORBOARD_LOGS_DIR,
-            histogram_freq = 1,
-            write_graph = True,
-            write_images = True)
+        if self.tensor_board:
+            # Output tensor board logs
+            tf_logs = keras.callbacks.TensorBoard(
+                log_dir = settings.TENSORBOARD_LOGS_DIR,
+                histogram_freq = 1,
+                write_graph = True,
+                write_images = True)
+            callbacks_list.append(tf_logs)
 
         # Train
-        callbacks_list = [checkpoint, tf_logs]
-        self.extended_model.fit_generator(
+        self.model.fit_generator(
             generator = self.generators['train'],
-            steps_per_epoch = int(3299/mini_batch_size), 
+            steps_per_epoch = int(3299/self.mini_batch_size), 
             epochs = epochs,
-            validation_data = self.generators['validate'],
-            validation_steps = int(0.3*3299/mini_batch_size),
+            validation_data = self.generators['validate'] if self.validate else None,
+            validation_steps = int(0.3*3299/self.mini_batch_size) if self.validate else None,
             class_weight = class_weights,
             workers = 2,
             callbacks = callbacks_list)
+
+
+class TransferLearning(Learning):
+	
+    def __init__(self, *args, **kwargs):
+        """
+        TransferLearning initialization.
+        """
+        super().__init__(*args, **kwargs)
+
+        self.base_model = None
+        self.base_model_name = None
+        self.model_name = None
+
+    def extend(self):
+        """
+        Extend the model by stacking new (dense) layers on top of the network
+        """
+        x = self.base_model.output
+        x = keras.layers.GlobalAveragePooling2D()(x)
+        x = keras.layers.Dense(1024, activation='relu')(x)
+        predictions = keras.layers.Dense(7, activation='softmax')(x)
+
+        # This is the model we will train:
+        self.model = keras.models.Model(input=self.base_model.input, output=predictions)
+
+    def build(self, base_model_name, input_shape = None, extended_model_name = None, summary = False):
+        """
+        Build an extended model. A base model is first loaded disregarding its last layers and afterwards
+        some new layers are stacked on top so the resulting model would be applicable to the
+        fishering-monitoring problem
+        
+        :param base_model_name: model name to load and use as base model (`"vgg16"`,`"vgg19"`,`"inception"`,`"xception"`,`"resnet"`).
+        :param input_shape: optional shape tuple (see input_shape of argument of base network used in Keras).
+        :param extended_model_name: name for the extended model. It will affect only to the weights file to write on disk
+        :param summary: whether to print the summary of the extended model
+        """
+
+        # Set the base model configuration and extended model name
+        self.base_model_name = base_model_name
+        self.base_model = PRETRAINED_MODELS[self.base_model_name](weights = 'imagenet', include_top = False, input_shape = input_shape)
+        if not extended_model_name:
+            extended_model_name = 'ext_' + base_model_name
+
+        self.model_name = extended_model_name
+
+        # Extend the base model
+        print("Building %s using %s as the base model..." % (self.model_name, self.base_model_name))
+        self.extend()        
+        print("Done building the model.")
+
+        if summary:
+            print(self.model.summary())
     
-    def fine_tune_extended(self, epochs, mini_batch_size, input_weights_name, n_layers = 126):
+    def fine_tune_extended(self, epochs, input_weights_name, n_layers = 126):
         """
         Fine-tunes the extended model. It is assumed that the top part of the classifier has already been trained
         using the `train_top` method. It retrains the top part of the extended model and also some of the last layers
@@ -144,22 +186,22 @@ class TransferLearning:
         """
 
         # Load weights
-        self.extended_model.load_weights(os.path.join(settings.WEIGHTS_DIR,input_weights_name))
+        self.model.load_weights(os.path.join(settings.WEIGHTS_DIR,input_weights_name))
 
         # Freeze layers
-        for layer in self.extended_model.layers[:n_layers]:
+        for layer in self.model.layers[:n_layers]:
            layer.trainable = False
 
-        for layer in self.extended_model.layers[n_layers:]:
+        for layer in self.model.layers[n_layers:]:
            layer.trainable = True
 
-        self.extended_model.compile(optimizer=keras.optimizers.SGD(lr=0.0001, momentum=0.9), loss='sparse_categorical_crossentropy', metrics = ['accuracy'])
-        weights_name = self.extended_model_name+'_finetuned.hdf5'
+        self.model.compile(optimizer=keras.optimizers.SGD(lr=0.0001, momentum=0.9), loss='sparse_categorical_crossentropy', metrics = ['accuracy'])
+        weights_name = self.model_name+'.finetuned'
         
         # Train
-        self.train(epochs, mini_batch_size, weights_name)
+        self.train(epochs, weights_name)
         
-    def train_top(self, epochs, mini_batch_size):
+    def train_top(self, epochs):
         """
         Trains the top part of the extended model. In other words it trains the extended model but freezing every
         layer of the base model.
@@ -172,15 +214,30 @@ class TransferLearning:
         for layer in self.base_model.layers:
             layer.trainable = False
             
-        self.extended_model.compile(
+        self.model.compile(
                 optimizer = 'adam',
                 loss = 'sparse_categorical_crossentropy',
                 metrics = ['accuracy'])
                 
-        weights_name = self.extended_model_name+'_toptrained.hdf5'
+        weights_name = self.model_name+'.toptrained'
         
         # Train
-        self.train(epochs, mini_batch_size, weights_name)
+        self.train(epochs, weights_name)
+
+class TransferLearningFishOrNoFish(TransferLearning):
+
+    def extend(self):
+        """
+        Extend the model by stacking new (dense) layers on top of the network
+        """
+        x = self.base_model.output
+        x = keras.layers.GlobalAveragePooling2D()(x)
+        x = keras.layers.Dense(1024, activation='relu')(x)
+        predictions = keras.layers.Dense(2, activation='softmax')(x)
+
+        # This is the model we will train:
+        self.model = keras.models.Model(input=self.base_model.input, output=predictions)
+
 
 def build():
     model = keras.models.Sequential()
@@ -275,31 +332,18 @@ def train(epochs = 100):
    
     class_weights = pl.class_weights()
 
-    generators = pl.train_and_validation_generator_generator()
-
-    # Define a method to create a batch generator
-    @threadsafe_generator
-    def batch_generator(generator, batch_size = 64):
-        n = 0
-        for x, y, meta in generator:
-            if n == 0:
-                xs = []
-                ys = []
-
-            xs.append(x())
-            ys.append(settings.CLASS_NAME_TO_INDEX_MAPPING[y])
-            n += 1
-
-            if n == batch_size:
-                n = 0
-                yield (np.array(xs), np.array(ys))
+    generators = pl.train_and_validation_data_generator_builder(
+        pl.drop_meta_generator,
+        pl.class_mapper_generator,
+        pl.mini_batch_generator,
+        pl.to_numpy_arrays_generator)
 
     model.fit_generator(
-            batch_generator(generators['train']),
+            generators['train'],
             steps_per_epoch = 20, 
             epochs = 200,
             class_weight = class_weights,
-            validation_data = batch_generator(generators['validate']),
+            validation_data = generators['validate'],
             validation_steps = 2,
             workers = 2)
 

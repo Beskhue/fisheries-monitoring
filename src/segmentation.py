@@ -140,9 +140,9 @@ def do_segmentation(img_idxs=None, output=True, save_candidates=True, data='trai
     dl = pipeline.DataLoader()
     
     if data == 'train':
-        data_imgs = dl.get_train_images_and_classes()
+        data_imgs = dl.get_original_images(dataset="train")
     elif data == 'test':
-        data_imgs = dl.get_test_images()
+        data_imgs = dl.get_original_images(dataset="test")
     elif data == 'final':
         print('Final stage not started yet')
         exit()
@@ -198,7 +198,7 @@ def do_segmentation(img_idxs=None, output=True, save_candidates=True, data='trai
     if data == 'train':
         template = preprocessing.build_template(data_x, data_meta)
     else:
-        hist_template_data_imgs = dl.get_train_images_and_classes(file_filter=preprocessing.DEFAULT_HIST_MATCH_TEMPLATES)
+        hist_template_data_imgs = dl.get_original_images(file_filter=preprocessing.DEFAULT_HIST_MATCH_TEMPLATES)
         template = preprocessing.build_template(hist_template_data_imgs['x'], hist_template_data_imgs['meta'])
     print('Histogram template computed. Starting segmentation...')
     

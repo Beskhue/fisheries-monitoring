@@ -1,6 +1,6 @@
 import os
 import pprint
-from clize import run
+from clize import run, parameters
 import pipeline
 import settings
 
@@ -9,14 +9,13 @@ def example():
     Run the pipeline example (tests if the pipeline runs succesfully, should produce summary output of the first batch and first case in that batch).
     """
 
-    pl = pipeline.Pipeline()
+    pl = pipeline.Pipeline(data_type = "original")
 
-    a = pl.train_and_validation_mini_batch_generator_generator()
-    train_mini_batches = a['train']
+    generator = pl.data_generator_builder(pl.mini_batch_generator)
 
-    x, y, meta = next(train_mini_batches)
+    x, y, meta = next(generator)
     print("Number of cases in first batch: %s" % len(x))
-    print("First image shape and label: %s - %s" % (str(x[0]().shape), y[0]))
+    print("First image shape and label: %s - %s" % (str(x[0].shape), y[0]))
     print("First image meta information:")
     pprint.pprint(meta[0])
 
@@ -42,10 +41,10 @@ def example_crop_plot():
     for clss in class_count:
         class_count_idx[settings.CLASS_NAME_TO_INDEX_MAPPING[clss]] = float(class_count[clss]) / pl.num_unique_samples()
 
-    generators = pl.train_and_validation_generator_generator()
+    generators = pl.train_and_validation_data_generator_builder()
 
     (x, y, meta) = next(generators['train'])
-    img = x()
+    img = x
 
     
     import matplotlib.pyplot as plt
@@ -71,12 +70,10 @@ def train_top_xception_network():
 
     import network
 
-    tl = network.TransferLearning()
+    tl = network.TransferLearning(data_type = "ground_truth_cropped", class_filter = ["NoF"])
 
     tl.build('xception', summary = False)
-    tl.train_top(
-        epochs = 70,
-        mini_batch_size = 32)
+    tl.train_top(epochs = 70)
 
 def fine_tune_xception_network():
     """
@@ -86,14 +83,24 @@ def fine_tune_xception_network():
 
     import network
 
-    tl = network.TransferLearning()
+    tl = network.TransferLearning(data_type = "ground_truth_cropped", class_filter = ["NoF"])
 
-    tl.build('xception', summary = False)
     tl.fine_tune_extended(
         epochs = 70,
-        mini_batch_size = 32,
         input_weights_name = "ext_xception_toptrained.hdf5",
         n_layers = 125)
+
+def train_top_fish_or_no_fish_network():
+    """
+    Train the top of the extended xception network.
+    """
+
+    import network
+
+    tl = network.TransferLearningFishOrNoFish(data_type = "candidates_cropped", class_filter = ["NoF"])
+
+    tl.build('xception', summary = False)
+    tl.train_top(epochs = 70)
 
 def segment_dataset(dataset, index_range=None, *, silent=False):
     """
@@ -129,23 +136,27 @@ def convert_annotations_to_darknet(single_class = False):
     import darknet
 
     dl = pipeline.DataLoader()
-    train_imgs = dl.get_train_images_and_classes()
+    train_imgs = dl.get_original_images()
     darknet.save_annotations_for_darknet(train_imgs, single_class = single_class)
 
-def crop_images(dataset, *, ground_truth = False, no_histogram_matching = False):
+def crop_images(dataset, *, 
+                crop_type : parameters.one_of(("candidates", "Create crops using the candidate regions."), ("ground_truth", "Create crops using the ground truth fish bounding boxes."), case_sensitive = True) = "candidates", 
+                no_histogram_matching = False):
     """
     Crop images in the data using either bounding box annotations or generated candidates. Creates one crop for each bounding box / candidate.
     
     dataset: which data set to crop images from (train, test, final)
 
-    ground_truth: use ground-truth bounding boxes (with flag) rather than generated candidates (default)
+    crop_type: whether to use candidate regions or ground-truth bounding boxes for cropping
     
     no_histogram_matching: disable histogram matching to colour in night-vision images
     """
 
     import preprocessing
     from skimage.io import imsave
-        
+
+    ground_truth = crop_type == "ground_truth"
+
     if ground_truth and dataset != 'train':
         print("No ground truth available for dataset " + dataset)
         exit()
@@ -156,9 +167,9 @@ def crop_images(dataset, *, ground_truth = False, no_histogram_matching = False)
     dl = pipeline.DataLoader()
     
     if dataset == 'train':
-        data = dl.get_train_images_and_classes()
+        data = dl.get_original_images(dataset = "train")
     elif dataset == 'test':
-        data = dl.get_test_images()
+        data = dl.get_original_images(dataset = "test")
     elif dataset == 'final':
         print("Final data set support pending")
         exit()
@@ -175,7 +186,7 @@ def crop_images(dataset, *, ground_truth = False, no_histogram_matching = False)
     if not no_histogram_matching:
         import colour
         print("Applying histogram matching. Preparing template...")
-        hist_template_data_imgs = dl.get_train_images_and_classes(file_filter=preprocessing.DEFAULT_HIST_MATCH_TEMPLATES)
+        hist_template_data_imgs = dl.get_original_images(file_filter=preprocessing.DEFAULT_HIST_MATCH_TEMPLATES)
         template = preprocessing.build_template(hist_template_data_imgs['x'], hist_template_data_imgs['meta'])
         print("Template prepared")
     
@@ -233,8 +244,10 @@ def crop_images(dataset, *, ground_truth = False, no_histogram_matching = False)
                 crop = next(crops)
             
             if ground_truth:
+                # Cropping the ground truth bounding boxes
                 outcls = clss
             else:
+                # Cropping the candidate regions
                 if dataset == 'train':
                     box_x_low, box_x_high, box_y_low, box_y_high = preprocessing.zoom_box(cand_bbox, img.shape)
                     cand_crop = {'x': box_x_low, 'width': box_x_high-box_x_low, 'y': box_y_low, 'height': box_y_high-box_y_low}
@@ -271,6 +284,7 @@ if __name__ == "__main__":
         train_network,
         train_top_xception_network,
         fine_tune_xception_network,
+        train_top_fish_or_no_fish_network,
         segment_dataset,
         convert_annotations_to_darknet,
         crop_images)

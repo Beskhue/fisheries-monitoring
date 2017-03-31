@@ -11,7 +11,7 @@ DEFAULT_HIST_MATCH_TEMPLATES = ['img_01678', 'img_06382', 'img_04391', 'img_0434
 def build_template(train_imgs, train_meta, template_files=DEFAULT_HIST_MATCH_TEMPLATES):
     """
     Build histogram matching template, to be used as argument for hist_match.
-    :param train_imgs: pipeline.DataLoader().get_train_images_and_classes()['x']
+    :param train_imgs: pipeline.DataLoader().get_original_images()['x']
     :param template_idxs: images to be used as templates, as indices into train_imgs
     """
     template_idxs = [i for i in range(len(train_imgs)) if train_meta[i]['filename'] in template_files]
