@@ -429,6 +429,9 @@ class DataLoader:
         x = []
         m = []
 
+        with open(os.path.join(settings.TRAIN_GROUND_TRUTH_CROPPED_IMAGES_DIR, "_keys.json"), 'r') as infile:
+            keys = json.load(infile)
+
         for clss in classes:
             if clss in self.class_filter:
                 continue
@@ -445,6 +448,7 @@ class DataLoader:
                 meta = {}
                 meta['filename'] = name
                 meta['class'] = clss
+                meta['original_image'] = keys[name]
 
                 x.append((lambda filename, clss, meta: lambda: f_middleware(self.load(filename), clss, meta))(filename, clss, meta))
                 y.append(clss)
@@ -466,10 +470,18 @@ class DataLoader:
                  as a list of meta information for each image (meta).
         """
 
-        classes = ["positive", "negative"]
         y = []
         x = []
         m = []
+
+        if dataset == "train":
+            classes = ["positive", "negative"]
+            with open(os.path.join(settings.TRAIN_CANDIDATES_CROPPED_IMAGES_DIR, "_keys.json"), 'r') as infile:
+                keys = json.load(infile)
+        elif dataset == "test":
+            classes = [None]
+            with open(os.path.join(settings.TEST_CANDIDATES_CROPPED_IMAGES_DIR, "_keys.json"), 'r') as infile:
+                keys = json.load(infile)
 
         for clss in classes:
             if clss in self.class_filter:
@@ -478,7 +490,7 @@ class DataLoader:
             if dataset == "train":
                 dir = os.path.join(settings.TRAIN_CANDIDATES_CROPPED_IMAGES_DIR, clss)
             elif dataset == "test":
-                dir = os.path.join(settings.TEST_CANDIDATES_CROPPED_IMAGES_DIR, clss)
+                dir = os.path.join(settings.TEST_CANDIDATES_CROPPED_IMAGES_DIR)
 
             filenames = glob.glob(os.path.join(dir, "*.jpg"))
             for filename in filenames:
@@ -490,6 +502,7 @@ class DataLoader:
                 meta = {}
                 meta['filename'] = name
                 meta['class'] = clss
+                meta['original_image'] = keys[name]
 
                 x.append((lambda filename, clss, meta: lambda: f_middleware(self.load(filename), clss, meta))(filename, clss, meta))
                 y.append(clss)
