@@ -251,9 +251,9 @@ class Pipeline:
 
             yield zip(*output)
 
-    def to_class_index_generator(self, generator):
+    def class_mapper_generator(self, generator, map = lambda clss: settings.CLASS_NAME_TO_INDEX_MAPPING[clss]):
         for x, y in generator:
-            yield x, settings.CLASS_NAME_TO_INDEX_MAPPING[y]
+            yield x, map(y)
 
     def to_numpy_arrays_generator(self, generator):
         for x, y in generator:

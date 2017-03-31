@@ -37,7 +37,7 @@ class Learning:
         self.generator_chain = [
             self.pl.augmented_generator,
             self.pl.drop_meta_generator,
-            self.pl.to_class_index_generator,
+            self.pl.class_mapper_generator,
             functools.partial(self.pl.mini_batch_generator, mini_batch_size = mini_batch_size),
             self.pl.to_numpy_arrays_generator
         ]
@@ -333,7 +333,7 @@ def train(epochs = 100):
 
     generators = pl.train_and_validation_data_generator_builder(
         pl.drop_meta_generator,
-        pl.to_class_index_generator,
+        pl.class_mapper_generator,
         pl.mini_batch_generator,
         pl.to_numpy_arrays_generator)
 
