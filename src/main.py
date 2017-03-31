@@ -277,13 +277,11 @@ def crop_images(dataset, *,
     classes_encountered = []
     n = 0
     n_img = 0
-    img_file_name_to_crop_file_name = {}
+    crop_file_name_keys = {}
 
     for img, meta in zip(imgs, metas):
         # Load image
         img = img()
-        
-        img_file_name_to_crop_file_name[meta['filename']] = []
 
         n_img += 1
         if n_img % 100 == 0:
@@ -341,7 +339,7 @@ def crop_images(dataset, *,
             class_dir = os.path.join(settings.CROPS_OUTPUT_DIR, outcls)
             file_path = os.path.join(class_dir, file_name)
 
-            img_file_name_to_crop_file_name[meta['filename']].append(file_name)
+            crop_file_name_keys[file_name] = meta['filename']
 
             # Create directory for class if it does not exist yet
             if outcls not in classes_encountered:
@@ -353,7 +351,7 @@ def crop_images(dataset, *,
             imsave(file_path, crop)
 
     with open(os.path.join(settings.CROPS_OUTPUT_DIR, "_keys.json"), 'w') as outfile:
-        json.dump(img_file_name_to_crop_file_name, outfile)
+        json.dump(crop_file_name_keys, outfile)
     
     print("All images cropped.")
 
