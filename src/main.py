@@ -9,14 +9,13 @@ def example():
     Run the pipeline example (tests if the pipeline runs succesfully, should produce summary output of the first batch and first case in that batch).
     """
 
-    pl = pipeline.Pipeline()
+    pl = pipeline.Pipeline(data_type = "original")
 
-    a = pl.train_and_validation_mini_batch_generator_generator()
-    train_mini_batches = a['train']
+    generator = pl.data_generator_builder(pl.mini_batch_generator)
 
-    x, y, meta = next(train_mini_batches)
+    x, y, meta = next(generator)
     print("Number of cases in first batch: %s" % len(x))
-    print("First image shape and label: %s - %s" % (str(x[0]().shape), y[0]))
+    print("First image shape and label: %s - %s" % (str(x[0].shape), y[0]))
     print("First image meta information:")
     pprint.pprint(meta[0])
 
@@ -42,10 +41,10 @@ def example_crop_plot():
     for clss in class_count:
         class_count_idx[settings.CLASS_NAME_TO_INDEX_MAPPING[clss]] = float(class_count[clss]) / pl.num_unique_samples()
 
-    generators = pl.train_and_validation_generator_generator()
+    generators = pl.train_and_validation_data_generator_builder()
 
     (x, y, meta) = next(generators['train'])
-    img = x()
+    img = x
 
     
     import matplotlib.pyplot as plt
@@ -71,7 +70,7 @@ def train_top_xception_network():
 
     import network
 
-    tl = network.TransferLearning(class_filter = ["NoF"])
+    tl = network.TransferLearning(data_type = "ground_truth_cropped", class_filter = ["NoF"])
 
     tl.build('xception', summary = False)
     tl.train_top(
@@ -86,7 +85,7 @@ def fine_tune_xception_network():
 
     import network
 
-    tl = network.TransferLearning(class_filter = ["NoF"])
+    tl = network.TransferLearning(data_type = "ground_truth_cropped", class_filter = ["NoF"])
 
     tl.fine_tune_extended(
         epochs = 70,

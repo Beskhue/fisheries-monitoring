@@ -7,196 +7,122 @@ import glob
 import json
 import collections
 import itertools
+import functools
 import settings
 import scipy.misc
 import sklearn.model_selection
 import numpy as np
+import threading
 from time import sleep
+from threadsafe import threadsafe_generator
 
 class Pipeline:
 
-    def __init__(self, class_filter = [], f_middleware = lambda *x: x[0]):
+    def __init__(self, data_type = "original", class_filter = [], f_middleware = lambda *x: x[0]):
         """
         Pipeline initialization.
 
+        :param data_type: The source data the pipeline should use ("original", "ground_truth_cropped")
         :param class_filter: A list of classes to ignore (i.e., they won't be loaded)
         :param f_middleware: A function to execute on the loaded raw image, its class and the meta-inform
         """
         self.f_middleware = f_middleware
         self.data_loader = DataLoader(class_filter)
-        self.load()
 
-    def load(self):
+        if data_type == "original":
+            self.load_original()
+        elif data_type == "ground_truth_cropped":
+            self.load_precropped_ground_truth()
+        else:
+            throw(ValueError("data_type should be 'original' or 'ground_truth_cropped'. Got: %s" % data_type))
+
+    def load_original(self):
         """
         Load the data
         """
-        self.train_data = self.data_loader.get_train_images_and_classes(self.f_middleware)
+        self.data = self.data_loader.get_train_images_and_classes(self.f_middleware)
         
-    def load_precropped(self):
+    def load_precropped_ground_truth(self):
         """
         Load the pre-cropped data
         """
-        self.precropped_train_data = self.data_loader.get_precropped_train_images_and_classes()
+        self.data = self.data_loader.get_precropped_train_images_and_classes(self.f_middleware)
     
-    def augmented_generator_generator(self, x, y, m, mini_batch_size):
+    def _data_generator(self, xs, ys, metas, infinite = False, shuffle = False):
         """
-        Generates an augmented generator
-        
-        :param x: data to feed the generator
-        :param y: labels of the data
-        :mini_batch_size size of the mini-batches
+        A generator to yield (loaded) images, targets and meta information.
 
-        :return: An generator implementing data augmentation
-        """ 
+        :param xs: List of functions to load images
+        :param ys: List of targets
+        :param metas: List of meta information
+        :param infinite: Whether the generator should loop infinitely over the data
+        :param shuffle: Whether the data should be shuffled (and reshuffled each loop of the generator)
 
-        from keras.preprocessing.image import ImageDataGenerator
-
-        datagen = ImageDataGenerator(
-                rescale = settings.AUGMENTATION_RESCALE,
-                rotation_range = settings.AUGMENTATION_ROTATION_RANGE,
-                shear_range = settings.AUGMENTATION_SHEAR_RANGE,
-                zoom_range = settings.AUGMENTATION_ZOOM_RANGE,
-                width_shift_range = settings.AUGMENTATION_WIDTH_SHIFT_RANGE,
-                height_shift_range = settings.AUGMENTATION_HEIGHT_SHIFT_RANGE,
-                horizontal_flip = settings.AUGMENTATION_HORIZONTAL_FLIP,
-                vertical_flip = settings.AUGMENTATION_VERTICAL_FLIP,
-                channel_shift_range = settings.AUGMENTATION_CHANNEL_SHIFT_RANGE
-                )        
-        
-        augmented_generator = datagen.flow(x, y, mini_batch_size)
-        #TODO integrate meta information to the flow
-        
-        return augmented_generator
-        
-    def augmented_full_generator_generator(self, mini_batch_size = 128):
+        :return: A generator yielding a tuple of (loaded) images, targets and meta information.
         """
-        Use data augmentation to generate a generator for ALL the dataset.
-        :mini_batch_size size of the mini-batches
+        for n in itertools.count():
+            if shuffle:
+                xs, ys, metas = sklearn.utils.shuffle(xs, ys, metas, random_state = n)
 
-        :return: A dictionary with the full set generator in 'train'
-        """  
-        self.load_precropped()
+            for x, y, meta in zip(xs, ys, metas):
+                yield x(), y, meta
 
-        x = self.precropped_train_data['x']
-        y = self.precropped_train_data['y']
-        meta = self.precropped_train_data['meta']
-        
-        return {
-            'train': self.augmented_generator_generator(x, y, meta, mini_batch_size)
-            }
-                
-    def augmented_train_and_validation_generator_generator(self, mini_batch_size = 128):
+            if not infinite:
+                break
+
+    @threadsafe_generator
+    def _threadsafe_generator(self, generator):
+        for g in generator:
+            yield g
+
+    def _chain_generators(self, generator, *generators):
         """
-        Use data augmentation to generate train and validation generators of the training data, by
-        splitting the data into train and validation sets.
-        :mini_batch_size size of the mini-batches
+        Chain "modifier" generators to the output of another generator.
+
+        :param generator: The initial (deepest) generator.
+        :param generators: Zero or more generators to chain to the generator.
+
+        :return: The resulting generator yielding output as modified throughout the chain.
+        """
+        for generator_ in generators:
+            generator = generator_(generator)
+        return self._threadsafe_generator(generator)
+
+    def data_generator_builder(self, *generators, infinite = False, shuffle = False):
+        """
+        Build a data generator.
+
+        :param infinite: Whether the generator should loop infinitely over the data.
+        :param shuffle: Whether the data should be shuffled (and reshuffled each loop of the generator).
+        :param generators: The "modifier" generators to apply.
+
+        :return: The generator.
+        """
+        g = self._data_generator(self.data['x'], self.data['y'], self.data['meta'], infinite = infinite, shuffle = shuffle)
+        return self._chain_generators(g, *generators)
+
+    def train_and_validation_data_generator_builder(self, *generators, balance = False, infinite = False, shuffle = False):
+        """
+        Build a data generator.
+
+        :param balance: Whether to balance the classes.
+        :param infinite: Whether the generator should loop infinitely over the data.
+        :param shuffle: Whether the data should be shuffled (and reshuffled each loop of the generator).
+        :param generators: The "modifier" generators to apply.
 
         :return: A dictionary with the training set generator in 'train', 
                  and the validation set generator in 'validate'
-        """  
-        self.load_precropped()
+        """
         x_train, x_validate, y_train, y_validate, meta_train, meta_validate = sklearn.model_selection.train_test_split(
-            self.precropped_train_data['x'], 
-            self.precropped_train_data['y'], 
-            self.precropped_train_data['meta'],
-            test_size = 0.2, 
-            stratify = self.precropped_train_data['y'],
-            random_state = 7)
-        with open(os.path.join(settings.DATA_DIR,'validation_precropped_meta_set.txt'),'w') as fp:
-            fp.write(str(meta_validate))
-        return {
-            'train': self.augmented_generator_generator(x_train, y_train, meta_train, mini_batch_size),
-            'validate': self.augmented_generator_generator(x_validate, y_validate, meta_validate, mini_batch_size)
-            }
-    
-    def train_and_validation_generator_generator(self):
-        """
-        Generate train and validation generators of the training data, by
-        splitting the data into train and validation sets.
+            self.data['x'], 
+            self.data['y'], 
+            self.data['meta'],
+            test_size = 0.2,
+            random_state = 7,
+            stratify = self.data['y'])
 
-        :return: A dictionary with the training set generator in 'train', 
-                 and the validation set generator in 'validate'
-        """  
-        x_train, x_validate, y_train, y_validate, meta_train, meta_validate = sklearn.model_selection.train_test_split(
-            self.train_data['x'], 
-            self.train_data['y'], 
-            self.train_data['meta'],
-            test_size = 0.2, 
-            stratify = self.train_data['y'],
-            random_state = 7)
-        with open(os.path.join(settings.DATA_DIR,'validation_meta_set.txt'),'w') as fp:
-            fp.write(str(meta_validate))
-        def train_generator():
-            while 1:
-                for x, y, meta in zip(x_train, y_train, meta_train):
-                    yield (x, y, meta)
-
-        def validate_generator():
-            while 1:
-                for x, y, meta in zip(x_validate, y_validate, meta_validate):
-                    yield (x, y, meta)
-
-        return {
-            'train': train_generator(),
-            'validate': validate_generator()
-            }
-
-
-
-    def mini_batch_generator(self, *x, mini_batch_size):
-        """
-        Generate a mini batch generator from the input arrays
-
-        :param *x: One or more input arrays
-        :param batch_size: The size of each mini-batch
-        :return: A generator (iterable) of n output arrays (with n the number of input arrays), such 
-                 that they are mini-batches of the input arrays.
-        """
-        num_args = len(x)
-        if num_args == 0:
-            raise TypeError("Expected at least one input")
-
-        n = len(x[0])
-        start_idx = 0
-
-        while start_idx < n:
-            last_idx = start_idx + mini_batch_size
-            if last_idx > n:
-                last_idx = n
-
-            out = [[] for x in range(num_args)]
-
-            for idx in range(start_idx, last_idx):
-                for i in range(0, num_args):
-                    out[i].append(x[i][idx])
-
-            yield tuple(out)
-            start_idx += mini_batch_size
-
-    def num_unique_samples(self):
-        """
-        Count the number of unique samples in the training (and validation) data
-
-        :return: Number of unique samples
-        """
-        return len(self.train_data['y'])
-        
-    def train_and_validation_generator_generator(self, balance = False):
-        """
-        Generate infinite train and validation generators of the training data, by
-        splitting the data into train and validation sets.
-
-        :param balance: Boolean indicating whether classes should be balanced in the output.
-        :return: A dictionary with the training set generator in 'train', 
-                 and the validation set generator in 'validate'
-        """
-
-        x_train, x_validate, y_train, y_validate, meta_train, meta_validate = sklearn.model_selection.train_test_split(
-            self.train_data['x'], 
-            self.train_data['y'], 
-            self.train_data['meta'],
-            test_size = 0.2, 
-            stratify = self.train_data['y'])
+        # Partially apply the _data_generator method, such that we have already applied infinite and shuffle
+        data_gen = functools.partial(self._data_generator, infinite = infinite, shuffle = shuffle)
 
         if balance:
             # We want to balance the data. First separate the data of each class:
@@ -215,26 +141,24 @@ class Pipeline:
                 generators = []
 
                 for clss in class_to_train_data:
-                    generators.append(itertools.cycle(class_to_train_data[clss]))
+                    generators.append(data_gen(*class_to_train_data[clss]))
 
-                while 1:
-                    for generator in generators:
-                        yield next(generator)
+                for generator in generators:
+                    yield next(generator)
 
             def validate_generator():
                 # Create a list of infinite generators for the data in each seperate class
                 generators = []
 
                 for clss in class_to_validate_data:
-                    generators.append(itertools.cycle(class_to_validate_data[clss]))
+                    generators.append(data_gen(*class_to_validate_data[clss]))
 
-                while 1:
-                    for generator in generators:
-                        yield next(generator)
+                for generator in generators:
+                    yield next(generator)
 
             return {
-                'train': train_generator(),
-                'validate': validate_generator()
+                'train': self._chain_generators(train_generator(), *generators),
+                'validate': self._chain_generators(validate_generator(), *generators)
                 }
 
         else:
@@ -243,38 +167,52 @@ class Pipeline:
             def train_generator():
                 while 1:
                     for x, y, meta in zip(x_train, y_train, meta_train):
-                        yield (x, y, meta)
+                        yield x, y, meta
 
             def validate_generator():
                 while 1:
                     for x, y, meta in zip(x_validate, y_validate, meta_validate):
-                        yield (x, y, meta)
+                        yield x, y, meta
 
             return {
-                'train': train_generator(),
-                'validate': validate_generator()
+                'train': self._chain_generators(data_gen(x_train, y_train, meta_train), *generators),
+                'validate': self._chain_generators(data_gen(x_validate, y_validate, meta_validate), *generators),
                 }
 
-
-    def train_and_validation_mini_batch_generator_generator(self, mini_batch_size = 128, balance = False):
+    def augmented_generator(self, generator):
         """
-        Generate (infinite) train and validation mini batch generators of the training data, by
-        splitting the data into train and validation sets.
+        Generates an augmented generator with data from an input generator
+        
+        :param generator: data to feed the generator
 
-        :param mini_batch_size: The size of the mini-batches.
-        :param balance: Boolean indicating whether classes should be balanced in the output.
-        :return: A dictionary with the training set mini-batch generator in 'train', 
-                 and the validation set mini-batch generator in 'validate'.
-        """  
+        :return: A generator augmenting the data coming from an input generator
+        """ 
 
-        generators = self.train_and_validation_generator_generator(balance = balance)
+        import augmentor
+        from keras.preprocessing.image import ImageDataGenerator
 
-        return {
-            'train': self.mini_batch_generator(generators['train'], mini_batch_size = mini_batch_size),
-            'validate': self.mini_batch_generator(generators['validate'], mini_batch_size = mini_batch_size)
-            }
+        imagegen = ImageDataGenerator(
+                rescale = settings.AUGMENTATION_RESCALE,
+                rotation_range = settings.AUGMENTATION_ROTATION_RANGE,
+                shear_range = settings.AUGMENTATION_SHEAR_RANGE,
+                zoom_range = settings.AUGMENTATION_ZOOM_RANGE,
+                width_shift_range = settings.AUGMENTATION_WIDTH_SHIFT_RANGE,
+                height_shift_range = settings.AUGMENTATION_HEIGHT_SHIFT_RANGE,
+                horizontal_flip = settings.AUGMENTATION_HORIZONTAL_FLIP,
+                vertical_flip = settings.AUGMENTATION_VERTICAL_FLIP,
+                channel_shift_range = settings.AUGMENTATION_CHANNEL_SHIFT_RANGE
+                )  
+        
+        augm = augmentor.Augmentor(imagegen) 
 
-    def mini_batch_generator(self, generator, mini_batch_size):
+        for x, y, meta in generator:
+            yield augm.augment(x), y, meta
+
+    def drop_meta_generator(self, generator):
+        for x, y, meta in generator:
+            yield x, y
+
+    def mini_batch_generator(self, generator, as_numpy_array = True, mini_batch_size = 32):
         """
         Generate a mini batch generator from an input generator.
 
@@ -298,11 +236,28 @@ class Pipeline:
 
             if n >= mini_batch_size:
                 n = 0
+
                 yield zip(*output)
 
         if len(output) > 0:
+
             yield zip(*output)
 
+    def to_class_index_generator(self, generator):
+        for x, y in generator:
+            yield x, settings.CLASS_NAME_TO_INDEX_MAPPING[y]
+
+    def to_numpy_arrays_generator(self, generator):
+        for x, y in generator:
+            yield np.array(x), np.array(y)
+
+    def num_unique_samples(self):
+        """
+        Count the number of unique samples in the training (and validation) data
+
+        :return: Number of unique samples
+        """
+        return len(self.data['y'])
 
     def class_count(self):
         """
@@ -312,7 +267,7 @@ class Pipeline:
         """
 
         class_count = {}
-        for y in self.train_data['y']:
+        for y in self.data['y']:
             if y not in class_count:
                 class_count[y] = 0
 
@@ -456,44 +411,53 @@ class DataLoader:
         
         return candidates
     
-    def get_precropped_train_images_and_classes(self):
+    def get_precropped_train_images_and_classes(self, f_middleware = lambda *x: x[0], file_filter = None):
         """
-        Method to load all the pre-cropped train cases into memory.
-        
-        :return: An array with all the images (X) with shape (n_images,299,299,3) and an array with all the
-                 labels (Y) with shape (n_images,) 
+        Method to load the pre-cropped ground truth train cases.
+
+        :param f_middleware: A function to execute on the loaded raw image, its class and the meta-information
+                             right after loading it. Should return the (pre-processed) image.
+        :param file_filter: A list of file names (in the form of 'img_01234') to limit the output to.
+
+        :return: A dictionary containing the list of classes (y) and list of (function to load) images (x), as well
+                 as a list of meta information for each image (meta).
         """
 
         classes = self.get_classes()
         y = []
         x = []
         m = []
-        
-        #print('Loading pre-cropped images from ',settings.CROPPED_TRAIN_DIR,'...')
+
+        bounding_boxes = self.get_bounding_boxes()
+        candidates = self.get_candidates(dataset='train')
+
         for clss in classes:
-            filenames = glob.glob(os.path.join(settings.CROPPED_TRAIN_DIR,clss,'*'))
-            
-            #print("Loading ",len(fpaths),clss)
+            if clss in self.class_filter:
+                continue
+
+            dir = os.path.join(settings.CROPPED_TRAIN_DIR, clss)
+
+            filenames = glob.glob(os.path.join(dir, "*.jpg"))
             for filename in filenames:
                 name = self.get_file_name_part(filename)
+                
+                if file_filter is not None and name not in file_filter:
+                    continue
 
                 meta = {}
                 meta['filename'] = name
                 meta['class'] = clss
+
+                x.append((lambda filename, clss, meta: lambda: f_middleware(self.load(filename), clss, meta))(filename, clss, meta))
+                y.append(clss)
                 m.append(meta)
-                im = self.load(filename)[:299,:299,:]
-                x.append(im.reshape(-1,299,299,3))
-                y.append(settings.CLASS_NAME_TO_INDEX_MAPPING[clss])
-        
-        x = np.vstack(x)
-        y = np.hstack(y)
-        
-        return {'x':x, 'y':y, 'meta': m}
-    
+
+
+        return {'x': x, 'y': y, 'meta': m}
     
     def get_train_images_and_classes(self, f_middleware = lambda *x: x[0], file_filter = None):
         """
-        Method to load the train cases.
+        Method to load the original train cases.
 
         :param f_middleware: A function to execute on the loaded raw image, its class and the meta-information
                              right after loading it. Should return the (pre-processed) image.

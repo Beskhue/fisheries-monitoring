@@ -3,6 +3,7 @@ Module to train and use neural networks.
 """
 import os
 import abc
+import functools
 import pipeline
 import settings
 import keras
@@ -24,11 +25,11 @@ PRETRAINED_MODELS = {
 }
 
 class Learning:
-    def __init__(self, class_filter = [], tensor_board = True, validate = True):
+    def __init__(self, data_type = "original", class_filter = [], tensor_board = True, validate = True):
         self.model = None
         self.tensor_board = tensor_board
         self.validate = validate
-        self.pipeline = pipeline.Pipeline(class_filter = class_filter)
+        self.pl = pipeline.Pipeline(data_type = data_type, class_filter = class_filter)
         self.generators = {}
 
     def set_full_generator(self, mini_batch_size):
@@ -38,8 +39,14 @@ class Learning:
         
         :param mini_batch_size: size of the mini batches
         """
-        self.generators.update(self.pipeline.augmented_full_generator_generator(mini_batch_size = mini_batch_size))
-    
+        self.generators = self.pl.data_generator_builder(
+            self.pl.augmented_generator,
+            self.pl.drop_meta_generator,
+            self.pl.to_class_index_generator,
+            functools.partial(self.pl.mini_batch_generator, mini_batch_size = mini_batch_size),
+            self.pl.to_numpy_arrays_generator,
+            infinite = True, shuffle = True,)
+
     def set_train_val_generators(self, mini_batch_size):
         """
         Add the train and validation data augmented generators to the 
@@ -47,7 +54,13 @@ class Learning:
         
         :param mini_batch_size: size of the mini batches
         """
-        self.generators.update(self.pipeline.augmented_train_and_validation_generator_generator(mini_batch_size = mini_batch_size))
+        self.generators = self.pl.train_and_validation_data_generator_builder(
+            self.pl.augmented_generator,
+            self.pl.drop_meta_generator,
+            self.pl.to_class_index_generator,
+            functools.partial(self.pl.mini_batch_generator, mini_batch_size = mini_batch_size),
+            self.pl.to_numpy_arrays_generator,
+            infinite = True, shuffle = True,)
 
     @abc.abstractmethod
     def build(self):
@@ -69,7 +82,7 @@ class Learning:
             self.set_full_generator(mini_batch_size = mini_batch_size)
 
         # Calculate class weights
-        class_weights = self.pipeline.class_reciprocal_weights()
+        class_weights = self.pl.class_reciprocal_weights()
 
         callbacks_list = []
 
@@ -306,31 +319,18 @@ def train(epochs = 100):
    
     class_weights = pl.class_weights()
 
-    generators = pl.train_and_validation_generator_generator()
-
-    # Define a method to create a batch generator
-    @threadsafe_generator
-    def batch_generator(generator, batch_size = 64):
-        n = 0
-        for x, y, meta in generator:
-            if n == 0:
-                xs = []
-                ys = []
-
-            xs.append(x())
-            ys.append(settings.CLASS_NAME_TO_INDEX_MAPPING[y])
-            n += 1
-
-            if n == batch_size:
-                n = 0
-                yield (np.array(xs), np.array(ys))
+    generators = pl.train_and_validation_data_generator_builder(
+        pl.drop_meta_generator,
+        pl.to_class_index_generator,
+        pl.mini_batch_generator,
+        pl.to_numpy_arrays_generator)
 
     model.fit_generator(
-            batch_generator(generators['train']),
+            generators['train'],
             steps_per_epoch = 20, 
             epochs = 200,
             class_weight = class_weights,
-            validation_data = batch_generator(generators['validate']),
+            validation_data = generators['validate'],
             validation_steps = 2,
             workers = 2)
 
