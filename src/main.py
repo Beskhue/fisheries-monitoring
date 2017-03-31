@@ -100,9 +100,7 @@ def train_top_fish_or_no_fish_network():
     tl = network.TransferLearningFishOrNoFish(data_type = "candidates_cropped", class_filter = ["NoF"])
 
     tl.build('xception', summary = False)
-    tl.train_top(
-        epochs = 70,
-        mini_batch_size = 32)
+    tl.train_top(epochs = 70)
 
 def segment_dataset(dataset, index_range=None, *, silent=False):
     """
