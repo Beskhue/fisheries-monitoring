@@ -266,7 +266,9 @@ def crop_images(dataset, *,
     else:
         metastr = "candidates"
         pos_overlap_ratio = 0.65
+        pos_minor_overlap_ratio = 0.1
         pos_containment_ratio = 0.50
+        pos_minor_containment_ratio = 0.17
         neg_overlap_ratio = 0.10
         
         intersection = lambda cand, fish: max(0, min(cand['x']+cand['width'], fish['x']+fish['width']) - max(cand['x'], fish['x'])) * max(0, min(cand['y']+cand['height'], fish['y']+fish['height']) - max(cand['y'], fish['y']))
@@ -321,12 +323,12 @@ def crop_images(dataset, *,
             else:
                 # Cropping the candidate regions
                 if dataset == 'train':
-                    box_x_low, box_x_high, box_y_low, box_y_high = preprocessing.zoom_box(cand_bbox, img.shape, zoom_factor=0.7*0.5)
+                    box_x_low, box_x_high, box_y_low, box_y_high = preprocessing.zoom_box(cand_bbox, img.shape)
                     cand_crop = {'x': box_x_low, 'width': box_x_high-box_x_low, 'y': box_y_low, 'height': box_y_high-box_y_low}
                     
-                    #if any(containment_ratio(cand_bbox, fish) >= pos_overlap_ratio for fish in ref_bboxes): # more than 65% of a fish is inside
-                        #outcls = "positive"
-                    if any(containment_ratio(fish, cand_bbox) >= pos_containment_ratio for fish in ref_bboxes): # more than half of this b.box contains a fish (for overly large sharks)
+                    if any(containment_ratio(cand_bbox, fish) >= pos_overlap_ratio and containment_ratio(fish, cand_bbox) >= pos_minor_containment_ratio for fish in ref_bboxes): # more than 65% of a fish is inside
+                        outcls = "positive"
+                    elif any(containment_ratio(fish, cand_bbox) >= pos_containment_ratio and containment_ratio(cand_bbox, fish) >= pos_minor_overlap_ratio for fish in ref_bboxes): # more than half of this b.box contains a fish (for overly large sharks)
                         outcls = "positive"
                     elif all(containment_ratio(cand_crop, fish) <= neg_overlap_ratio for fish in ref_bboxes): # negative even when zoomed out
                         outcls = "negative"
