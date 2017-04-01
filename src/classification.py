@@ -73,7 +73,9 @@ class FullClassification:
                 print('%d candidates processed' % (mini_batch_size*n_batches))
 
         # Save classifications
-        os.makedirs(self.fish_or_no_fish_classification_dir)
+        if not os.path.exists(self.fish_or_no_fish_classification_dir):
+            os.makedirs(self.fish_or_no_fish_classification_dir)
+        
         with open(os.path.join(self.fish_or_no_fish_classification_dir, "classification.json"), 'w') as outfile:
             json.dump(predicted, outfile)
 
@@ -108,11 +110,13 @@ class FullClassification:
                 img = np.array([img])
 
                 predictions = model.predict(img, batch_size = 1)
-
+                
                 fish_type_classification[meta['filename']] = predictions.tolist()
     
         # Save classifications
-        os.makedirs(self.fish_type_classification_dir)
+        if not os.path.exists(self.fish_or_no_fish_classification_dir):
+            os.makedirs(self.fish_type_classification_dir)
+        
         with open(os.path.join(self.fish_type_classification_dir, "classification.json"), 'w') as outfile:
             json.dump(fish_type_classification, outfile)
 
@@ -121,6 +125,7 @@ class FullClassification:
         Stage 5
         """
         
+        import csv
         self.prepare_directories()
 
         # Load fish type classifications
@@ -131,7 +136,7 @@ class FullClassification:
         data = ppl.get_data()
 
 
-        img_classifications = {}
+        cand_classifications = {}
         # Aggregate classifications of bounding boxes to original image level
         for meta in data['meta']:
             name = meta['filename']
@@ -141,12 +146,12 @@ class FullClassification:
 
                 original_img = meta['original_image']
 
-                if original_img not in img_classifications:
-                    img_classifications = []
+                if original_img not in cand_classifications:
+                    cand_classifications = []
 
-                img_classifications.append(fish_type_classification[name])
+                cand_classifications.append(fish_type_classification[name])
 
-        # Perform something to turn list of classifications for an image to a single class...
+        # Perform something to turn list of classifications for an image to scores for all classes
         img_classification = {}
 
         pipeline_original = pipeline.Pipeline(data_type = "original", dataset = self.dataset)
@@ -154,10 +159,18 @@ class FullClassification:
         for meta in original_images['meta']:
             name = meta['filename']
 
+            # TODO Use list of 7-class classification scores to generate one single 8-class classification score
             if name not in img_classifications:
                 img_classification['name'] = settings.CLASS_NAME_TO_INDEX_MAPPING["NoF"]
             else:
                 classifications = img_classifications[name]
-                # Use classifications to generate a single classification
                 
-        # Output in kaggle format...
+        # Output in kaggle format
+        with open(os.path.join(self.fish_type_classification_dir, "submission.json"), 'w', newline='') as subm_file:
+            subm_writer = csv.writer(subm_file)
+            subm_writer.writerow(['image','ALB','BET','DOL','LAG','NoF','OTHER','SHARK','YFT'])
+            
+            for meta in original_images['meta']:
+                name = meta['filename']
+                # TODO hook below line up to img_classification
+                subm_writer.writerow([name + '.jpg', 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125])
