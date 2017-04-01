@@ -154,9 +154,7 @@ def do_segmentation(img_idxs=None, output=True, save_candidates=True, data='trai
     data_meta = data_imgs['meta']
     
     if img_idxs is None:
-        random.seed(42)
         img_idxs = list(range(len(data_x)))
-        random.shuffle(img_idxs)
 
     if len(img_idxs) == 0:
         print('Empty index range given.')

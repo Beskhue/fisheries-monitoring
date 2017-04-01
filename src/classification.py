@@ -42,28 +42,38 @@ class FullClassification:
         Stage 3
         """
 
+        mini_batch_size = 32
+        
         import keras
-
-        pipeline = pipeline.Pipeline(data_type = "candidates_cropped", dataset = self.dataset)
+        
+        ppl = pipeline.Pipeline(data_type = "candidates_cropped", dataset = self.dataset)
+        self.prepare_directories()
 
         # Load fish-or-no-fish classification model
         model = keras.models.load_model(os.path.join(settings.WEIGHTS_DIR, settings.FISH_OR_NO_FISH_CLASSIFICATION_NETWORK_WEIGHT_NAME))
 
-        data_generator = self.pipeline.data_generator_builder(
-            functools.partial(self.pl.mini_batch_generator, mini_batch_size = 32))
+        data_generator = ppl.data_generator_builder(
+            functools.partial(ppl.mini_batch_generator, mini_batch_size = mini_batch_size))
 
         predicted = {}
+        n_batches = 0
+        batch_print_interval = int(100/mini_batch_size)+1
 
         # For each batch
         for x, y, meta in data_generator:
             x = np.array(x)
 
-            predictions = model.predict(x, batch_size = 32)
+            predictions = model.predict(x, batch_size = mini_batch_size)
 
             for m, pred in zip(meta, list(predictions)):
-                predicted[m['filename']] = bool(pred)
+                predicted[m['filename']] = bool(round(pred[0]))
+            
+            n_batches += 1
+            if n_batches % batch_print_interval == 0:
+                print('%d candidates processed' % (mini_batch_size*n_batches))
 
         # Save classifications
+        os.makedirs(self.fish_or_no_fish_classification_dir)
         with open(os.path.join(self.fish_or_no_fish_classification_dir, "classification.json"), 'w') as outfile:
             json.dump(predicted, outfile)
 
@@ -74,7 +84,8 @@ class FullClassification:
 
         import keras
 
-        pipeline = pipeline.Pipeline(data_type = "candidates_cropped", dataset = self.dataset)
+        ppl = pipeline.Pipeline(data_type = "candidates_cropped", dataset = self.dataset)
+        self.prepare_directories()
 
         # Load fish type classification model
         model = keras.models.load_model(os.path.join(settings.WEIGHTS_DIR, settings.FISH_TYPE_CLASSIFICATION_NETWORK_WEIGHT_NAME))
@@ -83,7 +94,7 @@ class FullClassification:
         with open(os.path.join(self.fish_or_no_fish_classification_dir, "classification.json"), 'r') as infile:
             fish_or_no_fish = json.load(infile)
 
-        data = self.pipeline.get_data()
+        data = ppl.get_data()
 
         fish_type_classification = {}
 
@@ -97,11 +108,11 @@ class FullClassification:
                 img = np.array([img])
 
                 predictions = model.predict(img, batch_size = 1)
-                prediction = predictions[0]
 
-                fish_type_classification[meta['filename']] = prediction
+                fish_type_classification[meta['filename']] = predictions.tolist()
     
         # Save classifications
+        os.makedirs(self.fish_type_classification_dir)
         with open(os.path.join(self.fish_type_classification_dir, "classification.json"), 'w') as outfile:
             json.dump(fish_type_classification, outfile)
 
@@ -109,13 +120,15 @@ class FullClassification:
         """
         Stage 5
         """
+        
+        self.prepare_directories()
 
         # Load fish type classifications
         with open(os.path.join(self.fish_type_classification_dir, "classification.json"), 'r') as infile:
             fish_type_classification = json.load(infile)
 
-        pipeline = pipeline.Pipeline(data_type = "candidates_cropped", dataset = self.dataset)
-        data = self.pipeline.get_data()
+        ppl = pipeline.Pipeline(data_type = "candidates_cropped", dataset = self.dataset)
+        data = ppl.get_data()
 
 
         img_classifications = {}

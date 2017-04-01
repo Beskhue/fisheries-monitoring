@@ -351,9 +351,12 @@ def crop_images(dataset, *,
 
             # Save the crop to file
             imsave(file_path, crop)
-
-    with open(os.path.join(settings.CROPS_OUTPUT_DIR, "_keys.json"), 'w') as outfile:
-        json.dump(crop_file_name_keys, outfile)
+    
+    if len(crop_file_name_keys) > 0:
+        with open(os.path.join(settings.CROPS_OUTPUT_DIR, "_keys.json"), 'w') as outfile:
+            json.dump(crop_file_name_keys, outfile)
+    else:
+        print('No region specification file found; are your JSONs in the right place?')
     
     print("All images cropped.")
 

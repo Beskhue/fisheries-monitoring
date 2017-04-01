@@ -227,6 +227,7 @@ class Pipeline:
         """
 
         n = 0
+        output = []
 
         for g in generator:
             if n == 0:
@@ -241,7 +242,6 @@ class Pipeline:
                 yield zip(*output)
 
         if len(output) > 0:
-
             yield zip(*output)
 
     def class_mapper_generator(self, generator):
@@ -390,11 +390,17 @@ class DataLoader:
         if dataset == 'train':
             for clss in classes:
                 candidates[clss] = {}
-        elif not (dataset == 'test' or dataset == 'final'):
+            cand_dir = settings.TRAIN_CANDIDATES_BOUNDING_BOXES_DIR
+        elif dataset == 'test':
+            cand_dir = settings.TEST_CANDIDATES_BOUNDING_BOXES_DIR
+        elif dataset == 'final':
+            print('Final data set candidates not generated yet')
+            exit()
+        else:
             print('Unknown candidate data set: ' + dataset)
             exit()
 
-        for cand_file_name in glob.glob(os.path.join(settings.TRAIN_CANDIDATES_BOUNDING_BOXES_DIR, dataset, '*.json')):
+        for cand_file_name in glob.glob(os.path.join(cand_dir, '*.json')):
             with open(cand_file_name) as data_file:
                 data = json.load(data_file)
                 for d in data:
