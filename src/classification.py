@@ -87,7 +87,6 @@ def classify_fish_or_no_fish(params:prep_classif):
         n_batches += 1
         if n_batches % batch_print_interval == 0:
             print('%d candidates processed' % (mini_batch_size*n_batches))
-            break
 
     # Save classifications
     if not os.path.exists(params.fish_or_no_fish_classification_dir):
