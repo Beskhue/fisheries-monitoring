@@ -173,6 +173,35 @@ def fine_tune_fish_or_no_fish_resnet_network():
         input_weights_name = "fishnofish.ext_resnet.toptrained.e034-tloss0.2205-vloss0.2006.hdf5",
         n_layers = 25)
 
+def train_top_fish_or_no_fish_vgg_network():
+    """
+    Train the top of the extended inceptionv4 fish or no fish network.
+    """
+
+    import network
+
+    tl = network.TransferLearningFishOrNoFish(class_balance_method = "batch", prediction_class_type = "single", data_type = "candidates_cropped")
+    
+    tl.build('vgg19', input_shape = (300, 300, 3), summary = False)
+    
+    tl.train_top(epochs = 70)
+
+def fine_tune_fish_or_no_fish_vgg_network():
+    """
+    Fine-tune the extended inceptionv4 fish or no fish network. To do this, first the top
+    of the extended inceptionv4 network must have been trained already.
+    """
+
+    import network
+
+    tl = network.TransferLearningFishOrNoFish(class_balance_method = "batch", prediction_class_type = "single", data_type = "candidates_cropped")
+
+    tl.build('vgg19', input_shape = (300, 300, 3), summary = False)
+    tl.fine_tune_extended(
+        epochs = 70,
+        input_weights_name = "ext_vgg19.toptrained.e060-tloss0.5310-vloss0.5097.hdf5",
+        n_layers = 17)
+
 def segment_dataset(dataset, index_range=None, *, silent=False):
     """
     Segments (part of) the given data set by colour, producing and saving candidate bounding boxes in a JSON file. Note: slow!
@@ -377,6 +406,9 @@ if __name__ == "__main__":
         #
         train_top_fish_or_no_fish_resnet_network,
         fine_tune_fish_or_no_fish_resnet_network,
+        #
+        train_top_fish_or_no_fish_vgg_network,
+        fine_tune_fish_or_no_fish_vgg_network,
         #
         segment_dataset,
         convert_annotations_to_darknet,
