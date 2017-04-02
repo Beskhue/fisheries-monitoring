@@ -263,6 +263,101 @@ class TransferLearningFishOrNoFish(TransferLearning):
         self.model = keras.models.Model(input=self.base_model.input, output=predictions)
 
 
+class TransferLearningLocalization(TransferLearning):
+
+    def __init__(self, *args, **kwargs):
+        """
+        TransferLearningLocalization initialization.
+        """
+        super().__init__(*args, **kwargs)
+
+        def add_img_size_to_meta_generator(generator):
+            """
+            Add the image size to the meta
+            """
+            for x, y, meta in generator:
+                meta['img_size'] = x.shape
+                yield  x, y, meta
+
+        def bounding_box_to_target_generator(generator):
+            """
+            Turn the bounding box into the target
+            """
+            for x, y, meta in generator:
+                bboxes = meta['bounding_boxes']
+                if len(bboxes) == 0:
+                    continue
+                else:
+                    bbox = bboxes[0]
+                    (width, height, channels) = meta['img_size']
+                    y = [
+                        bbox['x'] / float(width), 
+                        bbox['y'] / float(height), 
+                        bbox['width'] / float(width), 
+                        bbox['height'] / float(height)]
+                    yield x, np.array(y), meta
+
+
+        self.generator_chain = [
+            add_img_size_to_meta_generator,
+            functools.partial(self.pl.image_resize_generator, size = (300, 300)),
+            self.pl.augmented_generator,
+            bounding_box_to_target_generator,
+            self.pl.drop_meta_generator,
+            functools.partial(self.pl.mini_batch_generator, mini_batch_size = self.mini_batch_size),
+            self.pl.to_numpy_arrays_generator
+        ]
+
+    def extend(self):
+        """
+        Extend the model by stacking new (dense) layers on top of the network
+        """
+        x = self.base_model.output
+        x = keras.layers.GlobalAveragePooling2D()(x)
+        x = keras.layers.Dense(1024, activation='relu')(x)
+        predictions = keras.layers.Dense(4, activation='sigmoid')(x)
+
+        # This is the model we will train:
+        self.model = keras.models.Model(input=self.base_model.input, output=predictions)
+
+    def fine_tune_extended(self, epochs, input_weights_name, n_layers = 126):
+        # Load weights
+        self.model.load_weights(os.path.join(settings.WEIGHTS_DIR,input_weights_name))
+
+        # Freeze layers
+        for layer in self.model.layers[:n_layers]:
+           layer.trainable = False
+
+        for layer in self.model.layers[n_layers:]:
+           layer.trainable = True
+
+        loss = "mse"
+        metrics_ = []
+
+        self.model.compile(optimizer=keras.optimizers.SGD(lr=0.0001, momentum=0.9), loss=loss, metrics = metrics_)
+        weights_name = self.model_name+'.finetuned'
+        
+        # Train
+        self.train(epochs, weights_name)
+        
+    def train_top(self, epochs):
+        # Freeze all convolutional base_model layers
+        for layer in self.base_model.layers:
+            layer.trainable = False
+            
+        loss = "mse"
+        metrics_ = []
+
+        self.model.compile(
+                optimizer = 'adam',
+                loss = loss,
+                metrics = metrics_)
+                
+        weights_name = self.model_name+'.toptrained'
+        
+        # Train
+        self.train(epochs, weights_name)
+
 def build():
     model = keras.models.Sequential()
 

@@ -117,6 +117,27 @@ def fine_tune_xception_network():
         input_weights_name = "ext_xception_toptrained.hdf5",
         n_layers = 125)
 
+def train_top_localizer_vgg16_network():
+
+    import network
+
+    tl = network.TransferLearningLocalization(data_type = "original", class_filter = ["NoF"])
+
+    tl.build('vgg16', summary = False)
+    tl.train_top(epochs = 70)
+
+def fine_tune_localizer_vgg16_network():
+    
+    import network
+
+    tl = network.TransferLearningLocalization(data_type = "original", class_filter = ["NoF"])
+
+    tl.build('vgg16', summary = False)
+    tl.fine_tune_extended(
+        epochs = 70,
+        input_weights_name = "ext_xception_toptrained.hdf5",
+        n_layers = 125)
+
 def train_top_fish_or_no_fish_network():
     """
     Train the top of the extended xception fish or no fish network.
@@ -400,6 +421,9 @@ if __name__ == "__main__":
         #
         train_top_xception_network,
         fine_tune_xception_network,
+        #
+        train_top_localizer_vgg16_network,
+        fine_tune_localizer_vgg16_network,
         #
         train_top_fish_or_no_fish_network,
         fine_tune_fish_or_no_fish_network,
