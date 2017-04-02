@@ -213,6 +213,12 @@ class Pipeline:
         for x, y, meta in generator:
             yield x, y
 
+    def image_resize_generator(self, generator, size = (300, 300)):
+        for g in generator:
+            g = list(g)
+            g[0] = scipy.misc.imresize(g[0], size)
+            yield tuple(g)
+
     def mini_batch_generator(self, generator, as_numpy_array = True, mini_batch_size = 32):
         """
         Generate a mini batch generator from an input generator.
