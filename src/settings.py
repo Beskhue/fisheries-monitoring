@@ -80,5 +80,5 @@ AUGMENTATION_CHANNEL_SHIFT_RANGE = 25.0
 AUGMENTATION_BLUR_RANGE = [0., 2.5]
 
 ## Classification settings
-FISH_OR_NO_FISH_CLASSIFICATION_NETWORK_WEIGHT_NAME = "fishnofish.ext_xception.toptrained.e001-tloss0.3366-vloss0.2445.hdf5"
-FISH_TYPE_CLASSIFICATION_NETWORK_WEIGHT_NAME       = "classification.ext_xception_toptrained.hdf5"
+FISH_OR_NO_FISH_CLASSIFICATION_NETWORK_WEIGHT_NAME = "insert_fish_or_no_fish_weights_file_here.hdf5"
+FISH_TYPE_CLASSIFICATION_NETWORK_WEIGHT_NAME       = "insert_fish_type_classification_weights_file_here.hdf5"
