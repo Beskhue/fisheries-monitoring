@@ -123,7 +123,7 @@ def train_top_localizer_vgg16_network():
 
     tl = network.TransferLearningLocalization(data_type = "original", class_filter = ["NoF"])
 
-    tl.build('vgg16', summary = False)
+    tl.build('vgg16', input_shape = (256, 256, 3), summary = True)
     tl.train_top(epochs = 70)
 
 def fine_tune_localizer_vgg16_network():
@@ -132,11 +132,11 @@ def fine_tune_localizer_vgg16_network():
 
     tl = network.TransferLearningLocalization(data_type = "original", class_filter = ["NoF"])
 
-    tl.build('vgg16', summary = False)
+    tl.build('vgg16', input_shape = (256, 256, 3), summary = False)
     tl.fine_tune_extended(
         epochs = 70,
-        input_weights_name = "ext_xception_toptrained.hdf5",
-        n_layers = 125)
+        input_weights_name = "localizer.ext_vgg16.toptrained.e007-tloss0.0198-vloss0.0417.hdf5",
+        n_layers = 0)
 
 def train_top_fish_or_no_fish_network():
     """
