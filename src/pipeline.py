@@ -224,7 +224,9 @@ class Pipeline:
 
         for g in generator:
             g = list(g)
-            g[0] = preprocess_input(g)
+            img = g[0]
+            img = img[np.newaxis]
+            g[0] = preprocess_input(img)[0]
             yield tuple(g)
 
     def mini_batch_generator(self, generator, as_numpy_array = True, mini_batch_size = 32):
