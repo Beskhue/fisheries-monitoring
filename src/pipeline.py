@@ -627,7 +627,7 @@ class DataLoader:
         :param filename: The name of the file to load
         :return: The image as an ndarray
         """
-        return scipy.misc.imread(filename)
+        return scipy.misc.imread(filename).astype("float32")
 
     def get_file_name_part(self, full_path):
         """

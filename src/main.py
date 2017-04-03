@@ -86,14 +86,14 @@ def example_fully_convolutional():
 
         plt.figure(figsize=(12, 8))
         plt.subplot(1, 3, 1)
-        plt.imshow(img)
+        plt.imshow(img.astype("uint8"))
         plt.axis('off')
         plt.subplot(1, 3, 2)
         plt.imshow(heatmap, interpolation='nearest', cmap="viridis")
         plt.axis('off')
         plt.subplot(1, 3, 3)
         
-        plt.imshow(img)
+        plt.imshow(img.astype("uint8"))
         heatmap_resized = scipy.misc.imresize(heatmap, img.shape)
         plt.imshow(heatmap_resized, interpolation='nearest', cmap="viridis", alpha=0.5)
         plt.axis('off')
