@@ -15,6 +15,7 @@ from keras.applications import VGG19
 import scipy.misc
 import numpy as np
 import metrics
+import customlayers
 
 PRETRAINED_MODELS = {
     "vgg16":     VGG16,
@@ -43,6 +44,7 @@ class Learning:
         self.generators = {}
         self.generator_chain = [
             self.pl.augmented_generator,
+            self.pl.imagenet_preprocess_generator,
             self.pl.drop_meta_generator,
             self.pl.class_mapper_generator,
             functools.partial(self.pl.mini_batch_generator, mini_batch_size = mini_batch_size),
@@ -147,20 +149,15 @@ class TransferLearning(Learning):
         Extend the model by stacking new (dense) layers on top of the network
         """
         x = self.base_model.output
-        if mode == 'avgdense':
-            x = keras.layers.GlobalAveragePooling2D()(x)
-            x = keras.layers.Dense(1024, activation='relu')(x)
-        elif mode == 'flatten':
-            x = keras.layers.Flatten()(x)
-        else:
-            print('Faulty mode given to extend')
-            exit()
+        # x = keras.layers.GlobalAveragePooling2D()(x)
+        x = keras.layers.Flatten()(x)
+        x = keras.layers.Dense(1024, activation='relu')(x)
         predictions = keras.layers.Dense(7, activation='softmax')(x)
 
         # This is the model we will train:
         self.model = keras.models.Model(input=self.base_model.input, output=predictions)
 
-    def build(self, base_model_name, input_shape = None, extended_model_name = None, summary = False, extend_mode='avgdense'):
+    def build(self, base_model_name, input_shape = None, extended_model_name = None, summary = False):
         """
         Build an extended model. A base model is first loaded disregarding its last layers and afterwards
         some new layers are stacked on top so the resulting model would be applicable to the
@@ -256,19 +253,14 @@ class TransferLearning(Learning):
 
 class TransferLearningFishOrNoFish(TransferLearning):
 
-    def extend(self, mode='avgdense'):
+    def extend(self):
         """
         Extend the model by stacking new (dense) layers on top of the network
         """
         x = self.base_model.output
-        if mode == 'avgdense':
-            x = keras.layers.GlobalAveragePooling2D()(x)
-            x = keras.layers.Dense(1024, activation='relu')(x)
-        elif mode == 'flatten':
-            x = keras.layers.Flatten()(x)
-        else:
-            print('Faulty mode given to extend')
-            exit()
+        #x = keras.layers.GlobalAveragePooling2D()(x)
+        x = keras.layers.Flatten()(x)
+        x = keras.layers.Dense(1024, activation='relu')(x)
         predictions = keras.layers.Dense(1, activation='sigmoid')(x)
 
         # This is the model we will train:
@@ -320,7 +312,7 @@ class TransferLearningLocalization(TransferLearning):
             self.pl.to_numpy_arrays_generator
         ]
 
-    def extend(self, mode='avgdense'):
+    def extend(self):
         """
         Extend the model by stacking new (dense) layers on top of the network
         """
@@ -374,6 +366,83 @@ class TransferLearningLocalization(TransferLearning):
         
         # Train
         self.train(epochs, weights_name)
+
+class LearningFullyConvolutional(TransferLearning):
+
+    def __init__(self, *args, **kwargs):
+        """
+        TransferLearningLocalization initialization.
+        """
+        super().__init__(*args, **kwargs)
+
+    def extend(self):
+        """
+        Extend the model by stacking new (dense) layers on top of the network
+        """
+
+        x = self.base_model.layers[-2].output
+
+        # A 1x1 convolution, with the same number of output channels as there are classes
+        fullyconv = keras.layers.Convolution2D(1000, 1, 1, name="fullyconv")(x)
+
+        # Softmax on last axis of tensor to normalize the class
+        # predictions in each spatial area
+        output = customlayers.SoftmaxMap(axis=-1)(fullyconv)
+
+        # This is fully convolutional model:
+        self.model = keras.models.Model(input=self.base_model.input, output=output)
+
+        # Load weights of the regular last dense layer of ResNet50
+        import h5py
+        h5f = h5py.File(os.path.join(settings.IMAGENET_DIR, 'resnet_weights_dense.h5'),'r')
+        w = h5f['w'][:]
+        b = h5f['b'][:]
+        h5f.close()
+
+        last_layer = self.model.layers[-2]
+
+        print("Loaded weight shape:", w.shape)
+        print("Last conv layer weights shape:", last_layer.get_weights()[0].shape)
+
+        # Set weights of fullyconv layer:
+        w_reshaped = w.reshape((1, 1, 2048, 1000))
+
+        last_layer.set_weights([w_reshaped, b])
+
+    def build(self):
+        self.base_model = ResNet50(include_top = False, weights = 'imagenet')
+        self.extend()
+
+    def forward_pass_resize(self, img, img_size):
+        from keras.applications.imagenet_utils import preprocess_input
+
+        img_raw = img
+        print("img shape before resizing: %s" % (img_raw.shape,))
+
+        # Resize
+        img = scipy.misc.imresize(img_raw, size=img_size).astype("float32")
+
+        # Add axis
+        img = img[np.newaxis]
+
+        # Preprocess for use in imagenet        
+        img = preprocess_input(img)
+
+        print("img batch size shape before forward pass:", img.shape)
+        z = self.model.predict(img)
+
+        return z
+
+    def build_heatmap(self, z):
+        synset = "n02512053"
+
+        import imagenettool
+
+        ids = imagenettool.synset_to_dfs_ids(synset)
+        ids = np.array([id_ for id_ in ids if id_ is not None])
+        x = z[0, :, :, ids].sum(axis=0)
+        print("size of heatmap: " + str(x.shape))
+        return x
 
 def build():
     model = keras.models.Sequential()

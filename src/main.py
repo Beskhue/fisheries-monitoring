@@ -78,6 +78,37 @@ def example_crop_plot():
     plt.ylabel('some numbers')
     plt.show()
 
+def example_fully_convolutional():
+    
+    def display_img_and_heatmap(img, heatmap):
+        import matplotlib.pyplot as plt
+
+        plt.figure(figsize=(12, 8))
+        plt.subplot(1, 2, 1)
+        plt.imshow(img)
+        plt.axis('off')
+        plt.subplot(1, 2, 2)
+        plt.imshow(heatmap, interpolation='nearest', cmap="viridis")
+        plt.axis('off')
+        plt.show()
+
+    import network
+
+    netw = network.LearningFullyConvolutional()
+    netw.build()
+
+    pl = pipeline.Pipeline(data_type = "original")
+
+    generator = pl.data_generator_builder()
+
+
+    for i in range(25):
+        x, y, meta = next(generator)
+
+        # probas_1 = netw.forward_pass_resize(x, (720, 1280))
+        probas_1 = netw.forward_pass_resize(x, (720, 1280))
+        heatmap_1 = netw.build_heatmap(probas_1)
+        display_img_and_heatmap(x, heatmap_1)
 
 def train_network():
     """
@@ -124,9 +155,9 @@ def train_top_resnet_network():
 
     import network
 
-    tl = network.TransferLearning(class_balance_method = "batch", data_type = "ground_truth_cropped")
+    tl = network.TransferLearning(data_type = "ground_truth_cropped", class_balance_method = "batch", class_filter = ["NoF"])
 
-    tl.build('resnet', input_shape = (300, 300, 3), summary = False, extend_mode='flatten')
+    tl.build('resnet', input_shape = (300,300,3), summary = True)
     tl.train_top(epochs = 70)
 
 def fine_tune_resnet_network():
@@ -137,13 +168,13 @@ def fine_tune_resnet_network():
 
     import network
 
-    tl = network.TransferLearning(class_balance_method = "batch", data_type = "ground_truth_cropped")
+    tl = network.TransferLearning(data_type = "ground_truth_cropped", class_balance_method = "batch", class_filter = ["NoF"])
 
-    tl.build('resnet', input_shape = (300, 300, 3), summary = False, extend_mode='flatten')
+    tl.build('resnet', input_shape = (300,300,3), summary = False)
     tl.fine_tune_extended(
         epochs = 70,
-        input_weights_name = "fishnofish.ext_resnet.toptrained.e034-tloss0.2205-vloss0.2006.hdf5",
-        n_layers = 25)
+        input_weights_name = "ext_resnet_toptrained.hdf5",
+        n_layers = 125)
 
 def train_top_vgg_network():
     """
@@ -473,14 +504,18 @@ if __name__ == "__main__":
     run(example,
         example_train_and_validation_split,
         example_crop_plot,
+        #
         train_network,
         #
         train_top_xception_network,
         fine_tune_xception_network,
         #
+<<<<<<< HEAD
         train_top_vgg_network,
         fine_tune_vgg_network,
         #
+=======
+>>>>>>> 7dc85e10f5f6dd657c8d538423dbae6f8d191f19
         train_top_resnet_network,
         fine_tune_resnet_network,
         #
@@ -495,6 +530,8 @@ if __name__ == "__main__":
         #
         train_top_fish_or_no_fish_vgg_network,
         fine_tune_fish_or_no_fish_vgg_network,
+        #
+        example_fully_convolutional,
         #
         segment_dataset,
         convert_annotations_to_darknet,
