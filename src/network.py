@@ -300,7 +300,7 @@ class TransferLearningLocalization(TransferLearning):
 
         self.generator_chain = [
             add_img_size_to_meta_generator,
-            functools.partial(self.pl.image_resize_generator, size = (300, 300)),
+            functools.partial(self.pl.image_resize_generator, size = (256, 256)),
             self.pl.augmented_generator,
             bounding_box_to_target_generator,
             self.pl.drop_meta_generator,
@@ -313,8 +313,13 @@ class TransferLearningLocalization(TransferLearning):
         Extend the model by stacking new (dense) layers on top of the network
         """
         x = self.base_model.output
-        x = keras.layers.GlobalAveragePooling2D()(x)
-        x = keras.layers.Dense(1024, activation='relu')(x)
+        x = keras.layers.Flatten()(x)
+        x = keras.layers.Dense(512, activation='relu')(x)
+        x = keras.layers.BatchNormalization()(x)
+        x = keras.layers.Dropout(0.5)(x)
+        x = keras.layers.Dense(512, activation='relu')(x)
+        x = keras.layers.BatchNormalization()(x)
+        x = keras.layers.Dropout(0.5)(x)
         predictions = keras.layers.Dense(4, activation='sigmoid')(x)
 
         # This is the model we will train:
