@@ -45,14 +45,14 @@ WEIGHTS_OUTPUT_DIR = os.path.join(OUTPUT_DIR, "weights", strftime("%Y%m%dT%H%M%S
 ## Classes
 
 CLASS_NAME_TO_INDEX_MAPPING = {
-    "ALB": 0,
-    "BET": 1,
-    "DOL": 2,
-    "LAG": 3,
-    "SHARK": 4,
-    "YFT": 5,
-    "OTHER": 6,
-    "NoF": 7
+    "ALB":      0,
+    "BET":      1,
+    "DOL":      2,
+    "LAG":      3,
+    "SHARK":    4,
+    "YFT":      5,
+    "OTHER":    6,
+    "NoF":      7
     }
 
 """CLASS_INDEX_TO_NAME_MAPPING = {
