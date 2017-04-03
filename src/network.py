@@ -375,7 +375,7 @@ class LearningFullyConvolutional(TransferLearning):
         """
         super().__init__(*args, **kwargs)
 
-    def extend(self):
+    def extend(self, w, b, num_classes):
         """
         Extend the model by stacking new (dense) layers on top of the network
         """
@@ -383,7 +383,7 @@ class LearningFullyConvolutional(TransferLearning):
         x = self.base_model.layers[-2].output
 
         # A 1x1 convolution, with the same number of output channels as there are classes
-        fullyconv = keras.layers.Convolution2D(1000, 1, 1, name="fullyconv")(x)
+        fullyconv = keras.layers.Convolution2D(num_classes, 1, 1, name="fullyconv")(x)
 
         # Softmax on last axis of tensor to normalize the class
         # predictions in each spatial area
@@ -392,26 +392,47 @@ class LearningFullyConvolutional(TransferLearning):
         # This is fully convolutional model:
         self.model = keras.models.Model(input=self.base_model.input, output=output)
 
-        # Load weights of the regular last dense layer of ResNet50
-        import h5py
-        h5f = h5py.File(os.path.join(settings.IMAGENET_DIR, 'resnet_weights_dense.h5'),'r')
-        w = h5f['w'][:]
-        b = h5f['b'][:]
-        h5f.close()
-
         last_layer = self.model.layers[-2]
 
         print("Loaded weight shape:", w.shape)
         print("Last conv layer weights shape:", last_layer.get_weights()[0].shape)
 
         # Set weights of fullyconv layer:
-        w_reshaped = w.reshape((1, 1, 2048, 1000))
+        w_reshaped = w.reshape((1, 1, 2048, num_classes))
 
         last_layer.set_weights([w_reshaped, b])
 
-    def build(self):
-        self.base_model = ResNet50(include_top = False, weights = 'imagenet')
-        self.extend()
+    def build(self, weights_file = None, num_classes = 1000):
+        if weights_file == None:
+            self.base_model = ResNet50(include_top = False, weights = 'imagenet')
+
+            # Load weights of the regular last dense layer of ResNet50
+            import h5py
+            h5f = h5py.File(os.path.join(settings.IMAGENET_DIR, 'resnet_weights_dense.h5'),'r')
+            w = h5f['w'][:]
+            b = h5f['b'][:]
+            h5f.close()
+        else:
+            # Get the trained model
+            trained_model = keras.models.load_model(os.path.join(settings.WEIGHTS_DIR, weights_file))
+            print(trained_model.summary())
+            
+            # Get the base model (i.e., without the last dense layer)
+            trained_base_model = keras.models.Model(input=trained_model.input, output=trained_model.layers[-3].output)
+
+            # Get the bare (untrained) ResNet50 architecture and load in the trained model's weights
+            resnet = ResNet50(include_top = False, weights = None)
+            resnet.set_weights(trained_base_model.get_weights())
+
+            # Set it as the base model
+            self.base_model = resnet
+
+            # Get the weights of the trained model's last dense layer
+            weights = trained_model.layers[-1].get_weights()
+            w = weights[0]
+            b = weights[1]
+
+        self.extend(w, b, num_classes)
 
     def forward_pass_resize(self, img, img_size):
         from keras.applications.imagenet_utils import preprocess_input
@@ -440,13 +461,13 @@ class LearningFullyConvolutional(TransferLearning):
 
         import imagenettool
 
-        ids = imagenettool.synset_to_dfs_ids(synset)
-        ids = np.array([id_ for id_ in ids if id_ is not None])
-        x = probas[0, :, :, ids].sum(axis=0)
+        #ids = imagenettool.synset_to_dfs_ids(synset)
+        #ids = np.array([id_ for id_ in ids if id_ is not None])
+        x = probas[0, :, :, np.array([0,1,2,3,4,5])].sum(axis=0)
         print("size of heatmap: " + str(x.shape))
         return x
 
-    def build_multi_scale_heatmap(self, img):
+    def build_multi_scale_heatmap(self, img, ids = None):
 
         shape = img.shape
 
