@@ -510,12 +510,9 @@ if __name__ == "__main__":
         train_top_xception_network,
         fine_tune_xception_network,
         #
-<<<<<<< HEAD
         train_top_vgg_network,
         fine_tune_vgg_network,
         #
-=======
->>>>>>> 7dc85e10f5f6dd657c8d538423dbae6f8d191f19
         train_top_resnet_network,
         fine_tune_resnet_network,
         #
