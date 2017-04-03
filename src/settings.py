@@ -7,8 +7,8 @@ from time import strftime
 
 # Directory settings
 
-#ROOT_DIR = '/vol/tensusers/vgarciacazorla/fm'
-ROOT_DIR = os.path.normpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
+ROOT_DIR = '/vol/tensusers/vgarciacazorla/fm'
+#ROOT_DIR = os.path.normpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
 DATA_DIR = os.path.join(ROOT_DIR, "data")
 OUTPUT_DIR = os.path.join(ROOT_DIR, "output")
 
@@ -79,18 +79,18 @@ AUGMENTATION = {
             'HORIZONTAL_FLIP':        True,
             'VERTICAL_FLIP':          True,
             'CHANNEL_SHIFT_RANGE':    25.0,
-            'BLUR_RANGE':             [0., 2.5]},    
+            'BLUR_RANGE':             [0., 1.5]},    
     'moderate':{   
             'RESCALE':                 1./255,
             'ROTATION_RANGE':          360,  
             'SHEAR_RANGE':            0.05,    
-            'ZOOM_RANGE':             [0.95, 1],   
+            'ZOOM_RANGE':             [0.9, 1],   
             'WIDTH_SHIFT_RANGE':      0.05,  
             'HEIGHT_SHIFT_RANGE':     0.05,
             'HORIZONTAL_FLIP':        True,
             'VERTICAL_FLIP':          True,
             'CHANNEL_SHIFT_RANGE':    25.0,
-            'BLUR_RANGE':             [0., 1.5]}}
+            'BLUR_RANGE':             [0., 1.]}}
                           
 
 
