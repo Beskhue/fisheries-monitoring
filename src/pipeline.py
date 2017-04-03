@@ -41,6 +41,8 @@ class Pipeline:
         else:
             throw(ValueError("data_type should be 'original' or 'ground_truth_cropped'. Got: %s" % data_type))
 
+        self.classes = self.get_classes()
+
     def load_original(self, dataset):
         """
         Load the data
@@ -61,6 +63,16 @@ class Pipeline:
     
     def get_data(self):
         return self.data
+
+    def get_classes(self):
+        # Remove duplications and sort the classes:
+        return sorted(list(set(self.data['y'])))
+
+    def class_to_one_hot_encoding(self, clss):
+        encoding = np.zeros(len(self.classes))
+        idx = self.classes.index(clss)
+        encoding[idx] = 1
+        return encoding
 
     def _data_generator(self, xs, ys, metas, infinite = False, shuffle = False):
         """
@@ -263,6 +275,14 @@ class Pipeline:
     def class_mapper_generator(self, generator):
         for x, y in generator:
             yield x, self.class_to_index_mapper(y)
+
+    def one_hot_encoding_generator(self, generator):
+        for g in generator:
+            g = list(g)
+            y = g[1]
+            one_hot_encoding = self.class_to_one_hot_encoding(y)
+            g[1] = one_hot_encoding
+            yield tuple(g)
 
     def to_numpy_arrays_generator(self, generator):
         for x, y in generator:

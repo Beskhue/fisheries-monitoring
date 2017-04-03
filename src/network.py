@@ -46,7 +46,7 @@ class Learning:
             self.pl.augmented_generator,
             self.pl.imagenet_preprocess_generator,
             self.pl.drop_meta_generator,
-            self.pl.class_mapper_generator,
+            self.pl.one_hot_encoding_generator,
             functools.partial(self.pl.mini_batch_generator, mini_batch_size = mini_batch_size),
             self.pl.to_numpy_arrays_generator
         ]
@@ -212,7 +212,7 @@ class TransferLearning(Learning):
             loss = "binary_crossentropy"
             metrics_ = ['accuracy', metrics.precision, metrics.recall]
         elif self.prediction_class_type == "multi":
-            loss = "sparse_categorical_crossentropy"
+            loss = "categorical_crossentropy"
             metrics_ = ['accuracy']
 
         self.model.compile(optimizer=keras.optimizers.SGD(lr=0.0001, momentum=0.9), loss=loss, metrics = metrics_)
@@ -238,7 +238,7 @@ class TransferLearning(Learning):
             loss = "binary_crossentropy"
             metrics_ = ['accuracy', metrics.precision, metrics.recall]
         elif self.prediction_class_type == "multi":
-            loss = "sparse_categorical_crossentropy"
+            loss = "categorical_crossentropy"
             metrics_ = ['accuracy']
 
         self.model.compile(
