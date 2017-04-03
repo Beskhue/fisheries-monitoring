@@ -433,16 +433,35 @@ class LearningFullyConvolutional(TransferLearning):
 
         return z
 
-    def build_heatmap(self, z):
+    def build_heatmap(self, img, img_size):
+        probas = self.forward_pass_resize(img, img_size)
+
         synset = "n02512053"
 
         import imagenettool
 
         ids = imagenettool.synset_to_dfs_ids(synset)
         ids = np.array([id_ for id_ in ids if id_ is not None])
-        x = z[0, :, :, ids].sum(axis=0)
+        x = probas[0, :, :, ids].sum(axis=0)
         print("size of heatmap: " + str(x.shape))
         return x
+
+    def build_multi_scale_heatmap(self, img):
+
+        shape = img.shape
+
+        heatmaps = []
+        
+        for scale in [1.5, 1.25, 1.0, 0.75, 0.5]:
+            size = (round(shape[0] * scale), round(shape[1] * scale), shape[2])
+            heatmaps.append(self.build_heatmap(img, size))
+
+        largest_heatmap_shape = heatmaps[0].shape
+
+        heatmaps = [scipy.misc.imresize(heatmap, largest_heatmap_shape).astype("float32") for heatmap in heatmaps]
+        geom_avg_heatmap = np.power(functools.reduce(lambda x, y: x*y, heatmaps), 1.0 / len(heatmaps))
+        
+        return geom_avg_heatmap
 
 def build():
     model = keras.models.Sequential()

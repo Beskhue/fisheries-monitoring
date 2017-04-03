@@ -105,10 +105,8 @@ def example_fully_convolutional():
     for i in range(25):
         x, y, meta = next(generator)
 
-        # probas_1 = netw.forward_pass_resize(x, (720, 1280))
-        probas_1 = netw.forward_pass_resize(x, (720, 1280))
-        heatmap_1 = netw.build_heatmap(probas_1)
-        display_img_and_heatmap(x, heatmap_1)
+        heatmap = netw.build_multi_scale_heatmap(x)
+        display_img_and_heatmap(x, heatmap)
 
 def train_network():
     """
