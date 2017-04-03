@@ -109,13 +109,41 @@ def fine_tune_xception_network():
 
     import network
 
-    tl = network.TransferLearning(data_type = "ground_truth_cropped", class_filter = ["NoF"])
+    tl = network.TransferLearning8ClassCLF(data_type = "ground_truth_cropped", class_filter = ["NoF"])
 
     tl.build('xception', summary = False)
     tl.fine_tune_extended(
         epochs = 70,
         input_weights_name = "ext_xception_toptrained.hdf5",
         n_layers = 125)
+
+def train_top_xception_8_class_clf_network():
+    """
+    Train the top of the extended xception network.
+    """
+
+    import network
+
+    tl = network.TransferLearning8ClassCLF(data_type = "candidates_cropped", class_filter = [], class_balance_method = "batch")
+
+    tl.build('xception', summary = False)
+    tl.train_top(epochs = 70)
+
+def fine_tune_xception_8_class_clf_network(layers_to_freeze_from_bottom):
+    """
+    Fine-tune the extended xception network. To do this, first the top
+    of the extended xception network must have been trained already.
+    """
+
+    import network
+
+    tl = network.TransferLearning(data_type = "candidates_cropped", class_filter = [], class_balance_method = "batch")
+
+    tl.build('xception', summary = False)
+    tl.fine_tune_extended(
+        epochs = 70,
+        input_weights_name = "ext_xception_toptrained.hdf5",
+        n_layers = layers_to_freeze_from_bottom)
 
 def train_top_localizer_vgg16_network():
 
