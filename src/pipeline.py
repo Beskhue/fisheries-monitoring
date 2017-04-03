@@ -22,7 +22,7 @@ class Pipeline:
         """
         Pipeline initialization.
 
-        :param data_type: The source data the pipeline should use ("original", "ground_truth_cropped", "candidates_cropped")
+        :param data_type: The source data the pipeline should use ("original", "ground_truth_cropped", "candidates_cropped", "candidates_cropped_8_classes")
         :param class_filter: A list of classes to ignore (i.e., they won't be loaded)
         :param f_middleware: A function to execute on the loaded raw image, its class and the meta-inform
         """
@@ -44,9 +44,9 @@ class Pipeline:
             self.load_precropped_candidates_with_fish_type(dataset = dataset)
             self.augmentation_mode = 'moderate'
         else:
-            raise ValueError("data_type should be 'original', 'ground_truth_cropped' or 'candidates_cropped_8_classes'. Got: %s" % data_type)
+            raise ValueError("data_type should be 'original', 'ground_truth_cropped', 'candidates_cropped' or 'candidates_cropped_8_classes'. Got: %s" % data_type)
         self.data_type = data_type
-        
+        print("Pipeline generating data from",self.data_type," in ",self.augmentation_mode,"augmentation mode")
     def load_original(self, dataset):
         """
         Load the data
