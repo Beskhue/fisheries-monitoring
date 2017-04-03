@@ -44,6 +44,7 @@ class Learning:
         self.generators = {}
         self.generator_chain = [
             self.pl.augmented_generator,
+            self.pl.imagenet_preprocess_generator,
             self.pl.drop_meta_generator,
             self.pl.class_mapper_generator,
             functools.partial(self.pl.mini_batch_generator, mini_batch_size = mini_batch_size),
