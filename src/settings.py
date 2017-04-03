@@ -7,8 +7,8 @@ from time import strftime
 
 # Directory settings
 
-ROOT_DIR = '/vol/tensusers/vgarciacazorla/fm'
-#ROOT_DIR = os.path.normpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
+#ROOT_DIR = '/vol/tensusers/vgarciacazorla/fm'
+ROOT_DIR = os.path.normpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
 DATA_DIR = os.path.join(ROOT_DIR, "data")
 OUTPUT_DIR = os.path.join(ROOT_DIR, "output")
 
