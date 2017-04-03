@@ -28,19 +28,25 @@ class Pipeline:
         """
         self.f_middleware = f_middleware
         self.data_loader = DataLoader(class_filter)
-
+        
         self.class_to_index_mapper = lambda clss: settings.CLASS_NAME_TO_INDEX_MAPPING[clss]
 
         if data_type == "original":
             self.load_original(dataset = dataset)
         elif data_type == "ground_truth_cropped":
             self.load_precropped_ground_truth()
+            self.augmentation_mode = 'agressive'
         elif data_type == "candidates_cropped":
             self.load_precropped_candidates(dataset = dataset)
             self.class_to_index_mapper = lambda clss: 0 if clss == "negative" else 1
+            self.augmentation_mode = 'moderate'
+        elif data_type == "candidates_cropped_8_classes":
+            self.load_precropped_candidates_with_fish_type(dataset = dataset)
+            self.augmentation_mode = 'moderate'
         else:
-            throw(ValueError("data_type should be 'original' or 'ground_truth_cropped'. Got: %s" % data_type))
-
+            raise ValueError("data_type should be 'original', 'ground_truth_cropped' or 'candidates_cropped_8_classes'. Got: %s" % data_type)
+        self.data_type = data_type
+        
     def load_original(self, dataset):
         """
         Load the data
@@ -197,20 +203,21 @@ class Pipeline:
 
         import augmentor
         from keras.preprocessing.image import ImageDataGenerator
-
+        
+        augmentation = settings.AUGMENTATION[self.augmentation_mode]
         imagegen = ImageDataGenerator(
-                rescale = settings.AUGMENTATION_RESCALE,
-                rotation_range = settings.AUGMENTATION_ROTATION_RANGE,
-                shear_range = settings.AUGMENTATION_SHEAR_RANGE,
-                zoom_range = settings.AUGMENTATION_ZOOM_RANGE,
-                width_shift_range = settings.AUGMENTATION_WIDTH_SHIFT_RANGE,
-                height_shift_range = settings.AUGMENTATION_HEIGHT_SHIFT_RANGE,
-                horizontal_flip = settings.AUGMENTATION_HORIZONTAL_FLIP,
-                vertical_flip = settings.AUGMENTATION_VERTICAL_FLIP,
-                channel_shift_range = settings.AUGMENTATION_CHANNEL_SHIFT_RANGE
+                rescale =               augmentation['RESCALE'],
+                rotation_range =        augmentation['ROTATION_RANGE'],
+                shear_range =           augmentation['SHEAR_RANGE'],
+                zoom_range =            augmentation['ZOOM_RANGE'],
+                width_shift_range =     augmentation['WIDTH_SHIFT_RANGE'],
+                height_shift_range =    augmentation['HEIGHT_SHIFT_RANGE'],
+                horizontal_flip =       augmentation['HORIZONTAL_FLIP'],
+                vertical_flip =         augmentation['VERTICAL_FLIP'],
+                channel_shift_range =   augmentation['CHANNEL_SHIFT_RANGE']
                 )  
         
-        augm = augmentor.Augmentor(imagegen) 
+        augm = augmentor.Augmentor(imagegen, self.augmentation_mode) 
 
         for x, y, meta in generator:
             yield augm.augment(x), y, meta
@@ -549,11 +556,51 @@ class DataLoader:
         :return: A dictionary containing the list of classes (y) and list of (function to load) images (x), as well
                  as a list of meta information for each image (meta).
         """
-
+        assert dataset in ['train','test']
+        
         y = []
         x = []
         m = []
-        #TODO implement method
+        
+        is_train = dataset == 'train'
+        if is_train:
+            #Train phase
+            with open(os.path.join(settings.TRAIN_CANDIDATES_CROPPED_IMAGES_DIR, "_keys.json"), 'r') as infile:
+                keys = json.load(infile)
+            dir = os.path.join(settings.TRAIN_CANDIDATES_CROPPED_IMAGES_DIR)
+        else:
+            #Test phase
+            with open(os.path.join(settings.TEST_CANDIDATES_CROPPED_IMAGES_DIR, "_keys.json"), 'r') as infile:
+                keys = json.load(infile)
+            dir = os.path.join(settings.TEST_CANDIDATES_CROPPED_IMAGES_DIR)
+        pos_candidate_paths = glob.glob(os.path.join(dir,'positive','*'))
+        neg_candidate_paths = glob.glob(os.path.join(dir,'negative','*'))
+        candidate_paths = pos_candidate_paths + neg_candidate_paths
+        self.build_original_image_to_label_mapper()
+        # original_image_to_label_mapper
+        for candidate_path in candidate_paths:
+            is_positive = 'positive' == candidate_path.split(os.path.sep)[-2]
+            candidate_name = self.get_file_name_part(candidate_path)
+            original_image = keys[candidate_name]
+            if is_train:
+                #On training we have to retrieve the label of the candidate
+                if is_positive:
+                    #If candidate is positive we take its original image label
+                    clss = self.original_image_to_label_mapper[original_image]
+                else:
+                    #If candidate is negative the label must be NoF
+                    clss = 'NoF'
+            else:
+                #On test we don't labels are unknown
+                clss = None
+            meta = {}
+            meta['filename'] = candidate_name
+            meta['class'] = clss
+            meta['original_image'] = original_image
+
+            x.append((lambda candidate_path, clss, meta: lambda: f_middleware(self.load(candidate_path), clss, meta))(candidate_path, clss, meta))
+            y.append(clss)
+            m.append(meta)
 
         return {'x': x, 'y': y, 'meta': m}
     
