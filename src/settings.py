@@ -51,7 +51,8 @@ CLASS_NAME_TO_INDEX_MAPPING = {
     "LAG": 3,
     "SHARK": 4,
     "YFT": 5,
-    "OTHER": 6
+    "OTHER": 6,
+    "NoF": 7
     }
 
 """CLASS_INDEX_TO_NAME_MAPPING = {
@@ -80,5 +81,5 @@ AUGMENTATION_CHANNEL_SHIFT_RANGE = 25.0
 AUGMENTATION_BLUR_RANGE = [0., 2.5]
 
 ## Classification settings
-FISH_OR_NO_FISH_CLASSIFICATION_NETWORK_WEIGHT_NAME = "insert_fish_or_no_fish_weights_file_here.hdf5"
+FISH_OR_NO_FISH_CLASSIFICATION_NETWORK_WEIGHT_NAME = "ext_xception.finetuned.e048-tloss0.3673-vloss0.3271.hdf5"
 FISH_TYPE_CLASSIFICATION_NETWORK_WEIGHT_NAME       = "insert_fish_type_classification_weights_file_here.hdf5"
