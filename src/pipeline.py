@@ -59,6 +59,12 @@ class Pipeline:
         """
         self.data = self.data_loader.get_precropped_candidates_images(dataset = dataset, f_middleware = self.f_middleware)
     
+    def load_precropped_candidates_with_fish_type(self, dataset):
+        """
+        Load the pre-cropped data based on the candidates
+        """
+        self.data = self.data_loader.get_precropped_candidates_images_with_fish_type(dataset = dataset, f_middleware = self.f_middleware)
+    
     def get_data(self):
         return self.data
 
@@ -346,7 +352,7 @@ class DataLoader:
         """
         :param class_filter: A list of classes to ignore (i.e., they won't be loaded)
         """
-
+        self.original_image_to_label_mapper = dict()
         self.class_filter = class_filter
 
     def get_classes(self):
@@ -520,6 +526,34 @@ class DataLoader:
                 y.append(clss)
                 m.append(meta)
 
+
+        return {'x': x, 'y': y, 'meta': m}
+    
+    def build_original_image_to_label_mapper(self):
+        labels = self.get_classes()
+        for label in labels:
+            for image_path in glob.glob(os.path.join(settings.TRAIN_ORIGINAL_IMAGES_DIR,label,'*')):
+                image_name = self.get_file_name_part(image_path)
+                self.original_image_to_label_mapper[image_name] = label
+        
+    
+    def get_precropped_candidates_images_with_fish_type(self, dataset = "train", f_middleware = lambda *x: x[0], file_filter = None):
+        """
+        Method to load the pre-cropped candidates train cases with fish type (including 7 fishes + NoFish) instead of positive/negative.
+
+        :param dataset: The dataset to get data for (train, test)
+        :param f_middleware: A function to execute on the loaded raw image, its class and the meta-information
+                             right after loading it. Should return the (pre-processed) image.
+        :param file_filter: A list of file names (in the form of 'img_01234') to limit the output to.
+
+        :return: A dictionary containing the list of classes (y) and list of (function to load) images (x), as well
+                 as a list of meta information for each image (meta).
+        """
+
+        y = []
+        x = []
+        m = []
+        #TODO implement method
 
         return {'x': x, 'y': y, 'meta': m}
     
