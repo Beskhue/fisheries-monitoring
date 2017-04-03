@@ -40,6 +40,11 @@ SEGMENTATION_CANDIDATES_OUTPUT_DIR = os.path.join(OUTPUT_DIR, "candidates", strf
 CROPS_OUTPUT_DIR = os.path.join(OUTPUT_DIR, "crops", strftime("%Y%m%dT%H%M%S"))
 WEIGHTS_OUTPUT_DIR = os.path.join(OUTPUT_DIR, "weights", strftime("%Y%m%dT%H%M%S"))
 
+## Imagenet metadata
+
+IMAGENET_DIR = os.path.join(DATA_DIR, "imagenet")
+IMAGENET_CLSLOC_PATH = os.path.join(IMAGENET_DIR, "meta_clsloc.mat")
+
 # Problem-specific settings
 
 ## Classes
