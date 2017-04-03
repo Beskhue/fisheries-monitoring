@@ -452,7 +452,7 @@ class LearningFullyConvolutional(TransferLearning):
 
         heatmaps = []
         
-        for scale in [1.5, 1.25, 1.0, 0.75, 0.5]:
+        for scale in [2.0, 1.75, 1.25, 1.0]:
             size = (round(shape[0] * scale), round(shape[1] * scale), shape[2])
             heatmaps.append(self.build_heatmap(img, size))
 
