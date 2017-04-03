@@ -179,7 +179,7 @@ class TransferLearning(Learning):
 
         # Extend the base model
         print("Building %s using %s as the base model..." % (self.model_name, self.base_model_name))
-        self.extend(extend_mode)
+        self.extend()
         print("Done building the model.")
 
         if summary:
