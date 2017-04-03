@@ -124,10 +124,10 @@ def train_top_xception_8_class_clf_network():
 
     import network
 
-    tl = network.TransferLearning8ClassCLF(data_type = "candidates_cropped", class_filter = [], class_balance_method = "batch")
+    tl = network.TransferLearning8ClassCLF(data_type = "candidates_cropped_8_classes", class_filter = [], prediction_class_type = "multi", class_balance_method = "batch")
 
     tl.build('xception', summary = False)
-    tl.train_top(epochs = 70)
+    tl.train_top(epochs = 2)
 
 def fine_tune_xception_8_class_clf_network(layers_to_freeze_from_bottom):
     """
@@ -137,7 +137,7 @@ def fine_tune_xception_8_class_clf_network(layers_to_freeze_from_bottom):
 
     import network
 
-    tl = network.TransferLearning(data_type = "candidates_cropped", class_filter = [], class_balance_method = "batch")
+    tl = network.TransferLearning(data_type = "candidates_cropped_8_classes", class_filter = [], prediction_class_type = "multi", class_balance_method = "batch")
 
     tl.build('xception', summary = False)
     tl.fine_tune_extended(
@@ -449,6 +449,9 @@ if __name__ == "__main__":
         #
         train_top_xception_network,
         fine_tune_xception_network,
+        #
+        train_top_xception_8_class_clf_network,
+        fine_tune_xception_8_class_clf_network,
         #
         train_top_localizer_vgg16_network,
         fine_tune_localizer_vgg16_network,

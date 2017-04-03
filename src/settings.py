@@ -7,6 +7,7 @@ from time import strftime
 
 # Directory settings
 
+#ROOT_DIR = '/vol/tensusers/vgarciacazorla/fm'
 ROOT_DIR = os.path.normpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
 DATA_DIR = os.path.join(ROOT_DIR, "data")
 OUTPUT_DIR = os.path.join(ROOT_DIR, "output")
@@ -66,19 +67,32 @@ CLASS_NAME_TO_INDEX_MAPPING = {
     }"""
 
 CLASS_INDEX_TO_NAME_MAPPING = {v: k for k, v in CLASS_NAME_TO_INDEX_MAPPING.items()}
+## Data augmentation
+AUGMENTATION = {
+    'agressive':{   
+            'RESCALE':                 1./255,
+            'ROTATION_RANGE':          360,  
+            'SHEAR_RANGE':            0.1,    
+            'ZOOM_RANGE':             [0.55, 0.85],   
+            'WIDTH_SHIFT_RANGE':      0.2,  
+            'HEIGHT_SHIFT_RANGE':     0.2,
+            'HORIZONTAL_FLIP':        True,
+            'VERTICAL_FLIP':          True,
+            'CHANNEL_SHIFT_RANGE':    25.0,
+            'BLUR_RANGE':             [0., 2.5]},    
+    'moderate':{   
+            'RESCALE':                 1./255,
+            'ROTATION_RANGE':          360,  
+            'SHEAR_RANGE':            0.05,    
+            'ZOOM_RANGE':             [0.95, 1],   
+            'WIDTH_SHIFT_RANGE':      0.05,  
+            'HEIGHT_SHIFT_RANGE':     0.05,
+            'HORIZONTAL_FLIP':        True,
+            'VERTICAL_FLIP':          True,
+            'CHANNEL_SHIFT_RANGE':    25.0,
+            'BLUR_RANGE':             [0., 1.5]}}
+                          
 
-## Data augmentation settings
-
-AUGMENTATION_RESCALE = 1./255
-AUGMENTATION_ROTATION_RANGE = 360
-AUGMENTATION_SHEAR_RANGE = 0.1
-AUGMENTATION_ZOOM_RANGE = [0.55,0.85]
-AUGMENTATION_WIDTH_SHIFT_RANGE = 0.2
-AUGMENTATION_HEIGHT_SHIFT_RANGE = 0.2
-AUGMENTATION_HORIZONTAL_FLIP = True
-AUGMENTATION_VERTICAL_FLIP = True
-AUGMENTATION_CHANNEL_SHIFT_RANGE = 25.0
-AUGMENTATION_BLUR_RANGE = [0., 2.5]
 
 ## Classification settings
 FISH_OR_NO_FISH_CLASSIFICATION_NETWORK_WEIGHT_NAME = "ext_xception.finetuned.e048-tloss0.3673-vloss0.3271.hdf5"
