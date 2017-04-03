@@ -142,19 +142,25 @@ class TransferLearning(Learning):
         self.base_model_name = None
         self.model_name = None
 
-    def extend(self):
+    def extend(self, mode='avgdense'):
         """
         Extend the model by stacking new (dense) layers on top of the network
         """
         x = self.base_model.output
-        x = keras.layers.GlobalAveragePooling2D()(x)
-        x = keras.layers.Dense(1024, activation='relu')(x)
+        if mode == 'avgdense':
+            x = keras.layers.GlobalAveragePooling2D()(x)
+            x = keras.layers.Dense(1024, activation='relu')(x)
+        elif mode == 'flatten':
+            x = keras.layers.Flatten()(x)
+        else:
+            print('Faulty mode given to extend')
+            exit()
         predictions = keras.layers.Dense(7, activation='softmax')(x)
 
         # This is the model we will train:
         self.model = keras.models.Model(input=self.base_model.input, output=predictions)
 
-    def build(self, base_model_name, input_shape = None, extended_model_name = None, summary = False):
+    def build(self, base_model_name, input_shape = None, extended_model_name = None, summary = False, extend_mode='avgdense'):
         """
         Build an extended model. A base model is first loaded disregarding its last layers and afterwards
         some new layers are stacked on top so the resulting model would be applicable to the
@@ -176,7 +182,7 @@ class TransferLearning(Learning):
 
         # Extend the base model
         print("Building %s using %s as the base model..." % (self.model_name, self.base_model_name))
-        self.extend()        
+        self.extend(extend_mode)
         print("Done building the model.")
 
         if summary:
@@ -250,13 +256,19 @@ class TransferLearning(Learning):
 
 class TransferLearningFishOrNoFish(TransferLearning):
 
-    def extend(self):
+    def extend(self, mode='avgdense'):
         """
         Extend the model by stacking new (dense) layers on top of the network
         """
         x = self.base_model.output
-        x = keras.layers.GlobalAveragePooling2D()(x)
-        x = keras.layers.Dense(1024, activation='relu')(x)
+        if mode == 'avgdense':
+            x = keras.layers.GlobalAveragePooling2D()(x)
+            x = keras.layers.Dense(1024, activation='relu')(x)
+        elif mode == 'flatten':
+            x = keras.layers.Flatten()(x)
+        else:
+            print('Faulty mode given to extend')
+            exit()
         predictions = keras.layers.Dense(1, activation='sigmoid')(x)
 
         # This is the model we will train:
@@ -308,7 +320,7 @@ class TransferLearningLocalization(TransferLearning):
             self.pl.to_numpy_arrays_generator
         ]
 
-    def extend(self):
+    def extend(self, mode='avgdense'):
         """
         Extend the model by stacking new (dense) layers on top of the network
         """

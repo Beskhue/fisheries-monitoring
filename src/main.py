@@ -117,6 +117,62 @@ def fine_tune_xception_network():
         input_weights_name = "ext_xception_toptrained.hdf5",
         n_layers = 125)
 
+def train_top_resnet_network():
+    """
+    Train the top of the extended resnet50 fish type classification network.
+    """
+
+    import network
+
+    tl = network.TransferLearning(class_balance_method = "batch", data_type = "ground_truth_cropped")
+
+    tl.build('resnet', input_shape = (300, 300, 3), summary = False, extend_mode='flatten')
+    tl.train_top(epochs = 70)
+
+def fine_tune_resnet_network():
+    """
+    Fine-tune the extended resnet50 fish or no fish network. To do this, first the top
+    of the extended resnet50 network must have been trained already.
+    """
+
+    import network
+
+    tl = network.TransferLearning(class_balance_method = "batch", data_type = "ground_truth_cropped")
+
+    tl.build('resnet', input_shape = (300, 300, 3), summary = False, extend_mode='flatten')
+    tl.fine_tune_extended(
+        epochs = 70,
+        input_weights_name = "fishnofish.ext_resnet.toptrained.e034-tloss0.2205-vloss0.2006.hdf5",
+        n_layers = 25)
+
+def train_top_vgg_network():
+    """
+    Train the top of the extended vgg19 network.
+    """
+
+    import network
+
+    tl = network.TransferLearning(data_type = "candidates_cropped", class_filter = ["NoF"])
+
+    tl.build('vgg19', summary = False)
+    tl.train_top(epochs = 70)
+
+def fine_tune_vgg_network():
+    """
+    Fine-tune the extended vgg19 network. To do this, first the top
+    of the extended vgg19 network must have been trained already.
+    """
+
+    import network
+
+    tl = network.TransferLearning(data_type = "candidates_cropped", class_filter = ["NoF"])
+
+    tl.build('vgg19', summary = False)
+    tl.fine_tune_extended(
+        epochs = 70,
+        input_weights_name = "ext_xception_toptrained.hdf5",
+        n_layers = 17)
+
 def train_top_localizer_vgg16_network():
 
     import network
@@ -173,7 +229,7 @@ def train_top_fish_or_no_fish_resnet_network():
 
     import network
 
-    tl = network.TransferLearningFishOrNoFish(class_balance_method = "batch", prediction_class_type = "single", data_type = "candidates_cropped")
+    tl = network.TransferLearningFishOrNoFish(class_balance_method = "batch", prediction_class_type = "single", data_type = "ground_truth_cropped")
 
     tl.build('resnet', input_shape = (300, 300, 3), summary = False)
     tl.train_top(epochs = 70)
@@ -186,7 +242,7 @@ def fine_tune_fish_or_no_fish_resnet_network():
 
     import network
 
-    tl = network.TransferLearningFishOrNoFish(class_balance_method = "batch", prediction_class_type = "single", data_type = "candidates_cropped")
+    tl = network.TransferLearningFishOrNoFish(class_balance_method = "batch", prediction_class_type = "single", data_type = "ground_truth_cropped")
 
     tl.build('resnet', input_shape = (300, 300, 3), summary = False)
     tl.fine_tune_extended(
@@ -421,6 +477,12 @@ if __name__ == "__main__":
         #
         train_top_xception_network,
         fine_tune_xception_network,
+        #
+        train_top_vgg_network,
+        fine_tune_vgg_network,
+        #
+        train_top_resnet_network,
+        fine_tune_resnet_network,
         #
         train_top_localizer_vgg16_network,
         fine_tune_localizer_vgg16_network,
