@@ -406,7 +406,7 @@ class DataLoader:
             print('Unknown candidate data set: ' + dataset)
             exit()
 
-        for cand_file_name in glob.glob(os.path.join(cand_dir, '*.json')):
+        for cand_file_name in sorted(glob.glob(os.path.join(cand_dir, '*.json'))):
             with open(cand_file_name) as data_file:
                 data = json.load(data_file)
                 for d in data:
@@ -450,7 +450,7 @@ class DataLoader:
 
             dir = os.path.join(settings.TRAIN_GROUND_TRUTH_CROPPED_IMAGES_DIR, clss)
 
-            filenames = glob.glob(os.path.join(dir, "*.jpg"))
+            filenames = sorted(glob.glob(os.path.join(dir, "*.jpg")))
             for filename in filenames:
                 name = self.get_file_name_part(filename)
                 
@@ -504,7 +504,7 @@ class DataLoader:
             elif dataset == "test":
                 dir = os.path.join(settings.TEST_CANDIDATES_CROPPED_IMAGES_DIR)
 
-            filenames = glob.glob(os.path.join(dir, "*.jpg"))
+            filenames = sorted(glob.glob(os.path.join(dir, "*.jpg")))
             for filename in filenames:
                 name = self.get_file_name_part(filename)
                 
@@ -552,7 +552,7 @@ class DataLoader:
 
                 dir = os.path.join(settings.TRAIN_ORIGINAL_IMAGES_DIR, clss)
 
-                filenames = glob.glob(os.path.join(dir, "*.jpg"))
+                filenames = sorted(glob.glob(os.path.join(dir, "*.jpg")))
                 for filename in filenames:
                     name = self.get_file_name_part(filename)
                 
@@ -574,7 +574,7 @@ class DataLoader:
             return {'x': x, 'y': y, 'meta': m}
 
         elif dataset == "test":
-            for filename in glob.glob(os.path.join(settings.TEST_ORIGINAL_IMAGES_DIR, '*.jpg')):
+            for filename in sorted(glob.glob(os.path.join(settings.TEST_ORIGINAL_IMAGES_DIR, '*.jpg'))):
                 name = self.get_file_name_part(filename)
             
                 if file_filter is not None and name not in file_filter:
