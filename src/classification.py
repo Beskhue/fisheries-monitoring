@@ -82,7 +82,7 @@ def classify_fish_or_no_fish(params:prep_classif):
         predictions = model.predict(x, batch_size = mini_batch_size)
 
         for m, pred in zip(meta, list(predictions)):
-            predicted[m['filename']] = pred[0]
+            predicted[m['filename']] = float(pred[0])
         
         n_batches += 1
         if n_batches % batch_print_interval == 0:
@@ -137,7 +137,7 @@ def classify_fish_type(params:prep_classif):
 
             predictions = model.predict(img, batch_size = 1)
             
-            fish_type_classification[meta['filename']] = predictions.tolist()[0]
+            fish_type_classification[meta['filename']] = [float(pred) for pred in predictions.tolist()[0]]
         
         n_imgs += 1
         if n_imgs % 100 == 0:
