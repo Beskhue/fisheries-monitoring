@@ -121,11 +121,13 @@ def example_fully_convolutional():
 
     pl = pipeline.Pipeline(data_type = "original")
 
-    generator = pl.data_generator_builder()
+    generator = pl.data_generator_builder(shuffle = True)
 
 
-    for i in range(25):
-        x, y, meta = next(generator)
+    for x, y, meta in generator:
+
+        if y == "ALB":
+            continue
 
         heatmap = netw.build_multi_scale_heatmap(x)
         display_img_and_heatmap(x, heatmap)
