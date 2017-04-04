@@ -51,6 +51,18 @@ def crop_candidates(params:prep_classif):
     """
     main.crop_images(params.dataset, crop_type = "candidates")
 
+def propose_candidates_fullyconv(params:prep_classif):
+    """
+    Alternative stage 1
+    """
+    main.segment_dataset(params.dataset, type="fullyconv")
+
+def crop_candidates_fullyconv(params:prep_classif):
+    """
+    Alternative stage 2
+    """
+    main.crop_images(params.dataset, crop_type = "candidates_fullyconv")
+
 def classify_fish_or_no_fish(params:prep_classif):
     """
     Stage 3

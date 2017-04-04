@@ -420,7 +420,7 @@ class DataLoader:
 
         return bounding_boxes
     
-    def get_candidates(self, dataset='train'):
+    def get_candidates(self, dataset='train', type='colour'):
         """
         Get the candidates of fishes in the given data set.
 
@@ -431,9 +431,16 @@ class DataLoader:
         if dataset == 'train':
             for clss in classes:
                 candidates[clss] = {}
-            cand_dir = settings.TRAIN_CANDIDATES_BOUNDING_BOXES_DIR
+
+            if type == "colour":
+                cand_dir = settings.TRAIN_CANDIDATES_BOUNDING_BOXES_DIR
+            elif type == "fullyconv":
+                cand_dir = settings.TRAIN_CANDIDATES_FULLYCONV_BOUNDING_BOXES_DIR
         elif dataset == 'test':
-            cand_dir = settings.TEST_CANDIDATES_BOUNDING_BOXES_DIR
+            if type == "colour":
+                cand_dir = settings.TEST_CANDIDATES_BOUNDING_BOXES_DIR
+            elif type == "fullyconv":
+                cand_dir = settings.TEST_CANDIDATES_FULLYCONV_BOUNDING_BOXES_DIR
         elif dataset == 'final':
             print('Final data set candidates not generated yet')
             exit()
@@ -578,7 +585,8 @@ class DataLoader:
         if dataset == "train":
             bounding_boxes = self.get_bounding_boxes()
         
-        candidates = self.get_candidates(dataset = dataset)
+        candidates = self.get_candidates(dataset = dataset, type = "colour")
+        candidates_fullyconv = self.get_candidates(dataset = dataset, type = "fullyconv")
 
         if dataset == "train":
             for clss in classes:
@@ -601,6 +609,8 @@ class DataLoader:
                         meta['bounding_boxes'] = bounding_boxes[clss][name]
                     if name in candidates[clss]:
                         meta['candidates'] = candidates[clss][name]
+                    if name in candidates_fullyconv[clss]:
+                        meta['candidates_fullyconv'] = candidates_fullyconv[clss][name]
 
                     x.append((lambda filename, clss, meta: lambda: f_middleware(self.load(filename), clss, meta))(filename, clss, meta))
                     y.append(clss)
@@ -619,6 +629,8 @@ class DataLoader:
                 meta['filename'] = name
                 if name in candidates:
                     meta['candidates'] = candidates[name]
+                if name in candidates_fullyconv[clss]:
+                    meta['candidates_fullyconv'] = candidates_fullyconv[clss][name]
             
                 x.append((lambda filename, meta: lambda: f_middleware(self.load(filename), meta))(filename, meta))
                 m.append(meta)
