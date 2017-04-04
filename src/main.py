@@ -78,6 +78,21 @@ def example_crop_plot():
     plt.ylabel('some numbers')
     plt.show()
 
+def example_augmentation():
+
+    import matplotlib.pyplot as plt
+
+    pl = pipeline.Pipeline(data_type = "ground_truth_cropped")
+
+    generator = pl.data_generator_builder(pl.augmented_generator)
+    
+    for x, y, meta in generator:
+        
+        plt.figure()
+        plt.imshow(x.astype("uint8"))
+        plt.axis("off")
+        plt.show()
+
 def example_fully_convolutional():
     
     def display_img_and_heatmap(img, heatmap):
@@ -509,6 +524,7 @@ if __name__ == "__main__":
     run(example,
         example_train_and_validation_split,
         example_crop_plot,
+        example_augmentation,
         #
         train_network,
         #
