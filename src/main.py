@@ -179,7 +179,7 @@ def train_top_xception_8_class_clf_on_candidates_network(epochs = 70):
     tl.build('xception', summary = True)
     tl.train_top(epochs = epochs)
 
-def fine_tune_xception_8_class_clf_on_candidates_network(layers_to_freeze_from_bottom = 125, epochs = 70):
+def fine_tune_xception_8_class_clf_on_candidates_network(layers_to_freeze_from_bottom = 115, epochs = 70):
     """
     Fine-tune the extended xception network. To do this, first the top
     of the extended xception network must have been trained already.
