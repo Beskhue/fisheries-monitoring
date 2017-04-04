@@ -22,7 +22,7 @@ def build_template(train_imgs, train_meta, template_files=DEFAULT_HIST_MATCH_TEM
         # build template histogram
         t_hist = collections.defaultdict(int)
         for idx in template_idxs:
-            template = skimage.color.rgb2lab(train_imgs[idx]())
+            template = skimage.color.rgb2lab(train_imgs[idx]().astype('uint8'))
             template = template[:,:,d].ravel()
             t_values, t_counts = np.unique(template, return_counts=True)
             for i in range(len(t_values)):
@@ -43,7 +43,7 @@ def hist_match(source, template):
     :param source: The image to be transformed / coloured.
     :param template: Result of build_template (see above), whose colours are to be applied to source.
     """
-    source = skimage.color.rgb2lab(source)
+    source = skimage.color.rgb2lab(source.astype('uint8'))
     
     for d in range(3):
         # get source histogram
@@ -97,11 +97,11 @@ def random_negative_boxes(img, positives, num_fps):
     
     crops = []
     while len(crops) < num_fps:
-        width = int(mean_bbox_width*random.lognormvariate(0, 0.75))
-        height = int(mean_bbox_height*random.lognormvariate(0, 0.5))
-        x = int((shape[1]-width) * random.random())
-        y = int((shape[0]-height) * random.random())
-        crop = {'x': x, 'y': y, 'width': width, 'height': height}
+        width = min(mean_bbox_width*random.lognormvariate(0, 0.75), img.shape[1]/2.0)
+        height = min(mean_bbox_height*random.lognormvariate(0, 0.5), img.shape[0]/2.0)
+        x = (shape[1]-width) * random.random()
+        y = (shape[0]-height) * random.random()
+        crop = {'x': x, 'y': y, 'width': width, 'height': height, 'class': 'NoF'}
         
         if not any(containment_ratio(crop, bbox) > neg_overlap_ratio for bbox in positives):
             crops.append(crop)

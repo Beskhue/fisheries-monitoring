@@ -280,10 +280,10 @@ def train_top_fish_or_no_fish_resnet_network():
 
     import network
 
-    tl = network.TransferLearningFishOrNoFish(class_balance_method = "batch", prediction_class_type = "single", data_type = "ground_truth_cropped")
+    tl = network.TransferLearningFishOrNoFish(class_balance_method = "batch", prediction_class_type = "single", data_type = "candidates_cropped")
 
     tl.build('resnet', input_shape = (300, 300, 3), summary = False)
-    tl.train_top(epochs = 70)
+    tl.train_top(epochs = 100)
 
 def fine_tune_fish_or_no_fish_resnet_network():
     """
@@ -293,7 +293,7 @@ def fine_tune_fish_or_no_fish_resnet_network():
 
     import network
 
-    tl = network.TransferLearningFishOrNoFish(class_balance_method = "batch", prediction_class_type = "single", data_type = "ground_truth_cropped")
+    tl = network.TransferLearningFishOrNoFish(class_balance_method = "batch", prediction_class_type = "single", data_type = "candidates_cropped")
 
     tl.build('resnet', input_shape = (300, 300, 3), summary = False)
     tl.fine_tune_extended(
@@ -369,6 +369,7 @@ def convert_annotations_to_darknet(single_class = False):
 
 def crop_images(dataset, *, 
                 crop_type : parameters.one_of(("candidates", "Create crops using the candidate regions."), ("ground_truth", "Create crops using the ground truth fish bounding boxes."), case_sensitive = True) = "candidates", 
+                num_FPs = 80,
                 no_histogram_matching = False):
     """
     Crop images in the data using either bounding box annotations or generated candidates. Creates one crop for each bounding box / candidate.
@@ -377,12 +378,16 @@ def crop_images(dataset, *,
 
     crop_type: whether to use candidate regions or ground-truth bounding boxes for cropping
     
+    num_FPs: if the ground truth is used, defines the number of false positives (NoF crops) per image
+    
     no_histogram_matching: disable histogram matching to colour in night-vision images
     """
 
     import preprocessing
+    import random
     from skimage.io import imsave
-
+    
+    random.seed(42) # random NoF crop reproducability
     ground_truth = crop_type == "ground_truth"
 
     if ground_truth and dataset != 'train':
@@ -464,9 +469,11 @@ def crop_images(dataset, *,
         
         # For each crop...
         cand_bboxes = meta[metastr]
-        crops = zip(*preprocessing.crop(img, meta[metastr]))
-        for i in range(len(cand_bboxes)):
-            cand_bbox = cand_bboxes[i]
+        bboxes = cand_bboxes + preprocessing.random_negative_boxes(img, cand_bboxes, num_FPs)
+        crops = zip(*preprocessing.crop(img, bboxes))
+        
+        for i in range(len(bboxes)):
+            cand_bbox = bboxes[i]
             n += 1
             
             if ground_truth or dataset == 'train':

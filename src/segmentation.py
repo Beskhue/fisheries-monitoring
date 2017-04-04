@@ -204,7 +204,7 @@ def do_segmentation(img_idxs=None, output=True, save_candidates=True, data='trai
         idx = img_idxs[idx_idx]
         
         # Load image
-        img = data_x[idx]()
+        img = data_x[idx]().astype('uint8')
         if 'bounding_boxes' in data_meta[idx]:
             imgboxes = data_meta[idx]['bounding_boxes']
         else:
