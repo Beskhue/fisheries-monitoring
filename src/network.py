@@ -476,20 +476,16 @@ class LearningFullyConvolutional(TransferLearning):
 
         return z
 
-    def build_heatmap(self, img, img_size):
+    def build_heatmap(self, img, img_size, axes):
         probas = self.forward_pass_resize(img, img_size)
-
-        synset = "n02512053"
 
         import imagenettool
 
-        #ids = imagenettool.synset_to_dfs_ids(synset)
-        #ids = np.array([id_ for id_ in ids if id_ is not None])
-        x = probas[0, :, :, np.array([0])].sum(axis=0)
+        x = probas[0, :, :, np.array(axes)].sum(axis=0)
         print("size of heatmap: " + str(x.shape))
         return x
 
-    def build_multi_scale_heatmap(self, img, ids = None):
+    def build_multi_scale_heatmap(self, img, axes = [0]):
 
         shape = img.shape
 
@@ -497,7 +493,7 @@ class LearningFullyConvolutional(TransferLearning):
         
         for scale in [2.0, 1.75, 1.25, 1.0]:
             size = (round(shape[0] * scale), round(shape[1] * scale), shape[2])
-            heatmaps.append(self.build_heatmap(img, size))
+            heatmaps.append(self.build_heatmap(img, size, axes))
 
         largest_heatmap_shape = heatmaps[0].shape
 
