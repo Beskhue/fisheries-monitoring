@@ -40,7 +40,9 @@ class Pipeline:
             self.class_to_index_mapper = lambda clss: 0 if clss == "NoF" else 1
         elif data_type == "candidates_cropped":
             self.load_precropped_candidates(dataset = dataset)
-            self.class_to_index_mapper = lambda clss: 0 if clss == "negative" else 1
+        elif data_type == "fish_no_fish_candidates_cropped":
+            self.load_precropped_candidates(dataset = dataset)
+            self.class_to_index_mapper = lambda clss: 0 if clss == "NoF" else 1
         else:
             throw(ValueError("data_type should be 'original' or 'ground_truth_cropped'. Got: %s" % data_type))
 
@@ -520,7 +522,7 @@ class DataLoader:
         m = []
 
         if dataset == "train":
-            classes = ["positive", "negative"]
+            classes = self.get_classes()
             with open(os.path.join(settings.TRAIN_CANDIDATES_CROPPED_IMAGES_DIR, "_keys.json"), 'r') as infile:
                 keys = json.load(infile)
         elif dataset == "test":

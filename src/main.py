@@ -209,7 +209,7 @@ def train_top_vgg_network():
 
     import network
 
-    tl = network.TransferLearning(data_type = "candidates_cropped", class_filter = ["NoF"])
+    tl = network.TransferLearning(data_type = "ground_truth_cropped", class_filter = ["NoF"])
 
     tl.build('vgg19', summary = False)
     tl.train_top(epochs = 70)
@@ -222,7 +222,7 @@ def fine_tune_vgg_network():
 
     import network
 
-    tl = network.TransferLearning(data_type = "candidates_cropped", class_filter = ["NoF"])
+    tl = network.TransferLearning(data_type = "ground_truth_cropped", class_filter = ["NoF"])
 
     tl.build('vgg19', summary = False)
     tl.fine_tune_extended(
@@ -258,7 +258,7 @@ def train_top_fish_or_no_fish_network():
 
     import network
 
-    tl = network.TransferLearningFishOrNoFish(class_balance_method = "batch", prediction_class_type = "single", data_type = "candidates_cropped")
+    tl = network.TransferLearningFishOrNoFish(class_balance_method = "batch", prediction_class_type = "single", data_type = "fish_no_fish_candidates_cropped")
 
     tl.build('xception', summary = False)
     tl.train_top(epochs = 70)
@@ -271,7 +271,7 @@ def fine_tune_fish_or_no_fish_network():
 
     import network
 
-    tl = network.TransferLearningFishOrNoFish(class_balance_method = "batch", prediction_class_type = "single", data_type = "candidates_cropped")
+    tl = network.TransferLearningFishOrNoFish(class_balance_method = "batch", prediction_class_type = "single", data_type = "fish_no_fish_candidates_cropped")
 
     tl.build('xception', summary = False)
     tl.fine_tune_extended(
@@ -286,7 +286,7 @@ def train_top_fish_or_no_fish_resnet_network():
 
     import network
 
-    tl = network.TransferLearningFishOrNoFish(class_balance_method = "batch", prediction_class_type = "single", data_type = "candidates_cropped")
+    tl = network.TransferLearningFishOrNoFish(class_balance_method = "batch", prediction_class_type = "single", data_type = "fish_no_fish_candidates_cropped")
 
     tl.build('resnet', input_shape = (300, 300, 3), summary = False)
     tl.train_top(epochs = 100)
@@ -299,7 +299,7 @@ def fine_tune_fish_or_no_fish_resnet_network():
 
     import network
 
-    tl = network.TransferLearningFishOrNoFish(class_balance_method = "batch", prediction_class_type = "single", data_type = "candidates_cropped")
+    tl = network.TransferLearningFishOrNoFish(class_balance_method = "batch", prediction_class_type = "single", data_type = "fish_no_fish_candidates_cropped")
 
     tl.build('resnet', input_shape = (300, 300, 3), summary = False)
     tl.fine_tune_extended(
@@ -342,7 +342,7 @@ def train_top_fish_or_no_fish_vgg_network():
 
     import network
 
-    tl = network.TransferLearningFishOrNoFish(class_balance_method = "batch", prediction_class_type = "single", data_type = "candidates_cropped")
+    tl = network.TransferLearningFishOrNoFish(class_balance_method = "batch", prediction_class_type = "single", data_type = "fish_no_fish_candidates_cropped")
     
     tl.build('vgg19', input_shape = (300, 300, 3), summary = False)
     
@@ -356,7 +356,7 @@ def fine_tune_fish_or_no_fish_vgg_network():
 
     import network
 
-    tl = network.TransferLearningFishOrNoFish(class_balance_method = "batch", prediction_class_type = "single", data_type = "candidates_cropped")
+    tl = network.TransferLearningFishOrNoFish(class_balance_method = "batch", prediction_class_type = "single", data_type = "fish_no_fish_candidates_cropped")
 
     tl.build('vgg19', input_shape = (300, 300, 3), summary = False)
     tl.fine_tune_extended(
