@@ -103,7 +103,7 @@ def random_negative_boxes(img, positives, num_fps):
         y = (shape[0]-height) * random.random()
         crop = {'x': x, 'y': y, 'width': width, 'height': height, 'class': 'NoF'}
         
-        if not any(containment_ratio(crop, bbox) > neg_overlap_ratio for bbox in positives):
+        if not any(containment_ratio(preprocessing.zoom_box(crop, shape), bbox) > neg_overlap_ratio for bbox in positives): # negative even when zoomed out
             crops.append(crop)
     
     return crops
