@@ -151,7 +151,7 @@ class TransferLearning(Learning):
         x = self.base_model.output
         # x = keras.layers.GlobalAveragePooling2D()(x)
         x = keras.layers.Flatten()(x)
-        x = keras.layers.Dense(1024, activation='relu')(x)
+        # x = keras.layers.Dense(1024, activation='relu')(x)
         predictions = keras.layers.Dense(7, activation='softmax')(x)
 
         # This is the model we will train:
@@ -252,6 +252,22 @@ class TransferLearning(Learning):
         self.train(epochs, weights_name)
 
 class TransferLearningFishOrNoFish(TransferLearning):
+
+    def __init__(self, *args, **kwargs):
+        """
+        TransferLearningLocalization initialization.
+        """
+        super().__init__(*args, **kwargs)
+
+        self.generator_chain = [
+            self.pl.augmented_generator,
+            self.pl.imagenet_preprocess_generator,
+            self.pl.drop_meta_generator,
+            self.pl.class_mapper_generator,
+            functools.partial(self.pl.mini_batch_generator, mini_batch_size = mini_batch_size),
+            self.pl.to_numpy_arrays_generator
+        ]
+
 
     def extend(self):
         """
@@ -463,7 +479,7 @@ class LearningFullyConvolutional(TransferLearning):
 
         #ids = imagenettool.synset_to_dfs_ids(synset)
         #ids = np.array([id_ for id_ in ids if id_ is not None])
-        x = probas[0, :, :, np.array([0,1,2,3,4,5])].sum(axis=0)
+        x = probas[0, :, :, np.array([0])].sum(axis=0)
         print("size of heatmap: " + str(x.shape))
         return x
 
