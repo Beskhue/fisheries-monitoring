@@ -2,6 +2,7 @@ import os
 import pprint
 import json
 from clize import run, parameters
+import numpy as np
 import pipeline
 import settings
 
@@ -131,7 +132,9 @@ def example_fully_convolutional():
 
         heatmap = netw.build_multi_scale_heatmap(x)
         print("Min heatmap value: %s, max heatmap value: %s, mean heatmap value: %s" % (heatmap.min(), heatmap.max(), heatmap.mean()))
-        display_img_and_heatmap(x, heatmap)
+
+        heatmap_high = np.maximum(heatmap - np.median(heatmap), 0)
+        display_img_and_heatmap(x, heatmap_high)
 
 def train_network():
     """
