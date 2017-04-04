@@ -7,8 +7,8 @@ from time import strftime
 
 # Directory settings
 
-ROOT_DIR = '/vol/tensusers/vgarciacazorla/fm'
-#ROOT_DIR = os.path.normpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
+#ROOT_DIR = '/vol/tensusers/vgarciacazorla/fm'
+ROOT_DIR = os.path.normpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
 DATA_DIR = os.path.join(ROOT_DIR, "data")
 OUTPUT_DIR = os.path.join(ROOT_DIR, "output")
 
@@ -98,6 +98,3 @@ AUGMENTATION = {
             'BLUR_RANGE':             [0., 1.]}}
                           
 
-## Classification settings
-FISH_OR_NO_FISH_CLASSIFICATION_NETWORK_WEIGHT_NAME = "ext_xception.finetuned.e048-tloss0.3673-vloss0.3271.hdf5"
-FISH_TYPE_CLASSIFICATION_NETWORK_WEIGHT_NAME       = "ext_xception.toptrainedcandidates_cropped_8_classes_multi.e000-tloss1.4002-vloss1.3851.hdf5"

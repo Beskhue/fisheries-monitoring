@@ -176,7 +176,7 @@ def train_top_xception_8_class_clf_on_candidates_network(epochs = 70):
     data_type = "candidates_cropped_8_classes"
     #data_type = "ground_truth_cropped"
     tl = network.TransferLearning8ClassCLF(data_type = data_type, class_filter = [], prediction_class_type = "multi", class_balance_method = "batch")
-    tl.build('vgg16', summary = True)
+    tl.build('xception', summary = True)
     tl.train_top(epochs = epochs)
 
 def fine_tune_xception_8_class_clf_on_candidates_network(layers_to_freeze_from_bottom = 125, epochs = 70):
@@ -189,10 +189,10 @@ def fine_tune_xception_8_class_clf_on_candidates_network(layers_to_freeze_from_b
     data_type = "ground_truth_cropped"
     tl = network.TransferLearning8ClassCLF(data_type = data_type, class_filter = [], prediction_class_type = "multi", class_balance_method = "batch")
 
-    tl.build('vgg16', summary = True)
+    tl.build('xception', summary = True)
     tl.fine_tune_extended(
         epochs = epochs,
-        input_weights_name = 'top_trained_vgg16.hdf5',
+        input_weights_name = 'top_trained_xception.hdf5',
         n_layers = layers_to_freeze_from_bottom)
 
 def train_top_resnet_network():
