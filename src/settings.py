@@ -41,6 +41,11 @@ SEGMENTATION_CANDIDATES_OUTPUT_DIR = os.path.join(OUTPUT_DIR, "candidates", strf
 CROPS_OUTPUT_DIR = os.path.join(OUTPUT_DIR, "crops", strftime("%Y%m%dT%H%M%S"))
 WEIGHTS_OUTPUT_DIR = os.path.join(OUTPUT_DIR, "weights", strftime("%Y%m%dT%H%M%S"))
 
+## Imagenet metadata
+
+IMAGENET_DIR = os.path.join(DATA_DIR, "imagenet")
+IMAGENET_CLSLOC_PATH = os.path.join(IMAGENET_DIR, "meta_clsloc.mat")
+
 # Problem-specific settings
 
 ## Classes
@@ -73,15 +78,15 @@ AUGMENTATION = {
             #'RESCALE':               1./255,
             'ROTATION_RANGE':         360,  
             'SHEAR_RANGE':            0.1,    
-            'ZOOM_RANGE':             [0.55, 0.85],   
+            'ZOOM_RANGE':             [0.6, 0.9],   
             'WIDTH_SHIFT_RANGE':      0.2,  
             'HEIGHT_SHIFT_RANGE':     0.2,
             'HORIZONTAL_FLIP':        True,
             'VERTICAL_FLIP':          True,
-            'CHANNEL_SHIFT_RANGE':    25.0,
+            'CHANNEL_SHIFT_RANGE':    20.0,
             'BLUR_RANGE':             [0., 1.5]},    
     'moderate':{   
-            'RESCALE':                 1./255,
+            #'RESCALE':                 1./255,
             'ROTATION_RANGE':          360,  
             'SHEAR_RANGE':            0.05,    
             'ZOOM_RANGE':             [0.9, 1],   
@@ -89,10 +94,9 @@ AUGMENTATION = {
             'HEIGHT_SHIFT_RANGE':     0.05,
             'HORIZONTAL_FLIP':        True,
             'VERTICAL_FLIP':          True,
-            'CHANNEL_SHIFT_RANGE':    25.0,
+            'CHANNEL_SHIFT_RANGE':    15.0,
             'BLUR_RANGE':             [0., 1.]}}
                           
-
 
 ## Classification settings
 FISH_OR_NO_FISH_CLASSIFICATION_NETWORK_WEIGHT_NAME = "ext_xception.finetuned.e048-tloss0.3673-vloss0.3271.hdf5"

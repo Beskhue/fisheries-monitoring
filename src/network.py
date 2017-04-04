@@ -15,6 +15,7 @@ from keras.applications import VGG19
 import scipy.misc
 import numpy as np
 import metrics
+import customlayers
 
 PRETRAINED_MODELS = {
     "vgg16":     VGG16,
@@ -44,8 +45,9 @@ class Learning:
         self.generators = {}
         self.generator_chain = [
             self.pl.augmented_generator,
+            self.pl.imagenet_preprocess_generator,
             self.pl.drop_meta_generator,
-            self.pl.class_mapper_generator,
+            self.pl.one_hot_encoding_generator,
             functools.partial(self.pl.mini_batch_generator, mini_batch_size = mini_batch_size),
             self.pl.to_numpy_arrays_generator
         ]
@@ -143,13 +145,14 @@ class TransferLearning(Learning):
         self.base_model_name = None
         self.model_name = None
 
-    def extend(self):
+    def extend(self, mode='avgdense'):
         """
         Extend the model by stacking new (dense) layers on top of the network
         """
         x = self.base_model.output
-        x = keras.layers.GlobalAveragePooling2D()(x)
-        x = keras.layers.Dense(1024, activation='relu')(x)
+        # x = keras.layers.GlobalAveragePooling2D()(x)
+        x = keras.layers.Flatten()(x)
+        # x = keras.layers.Dense(1024, activation='relu')(x)
         predictions = keras.layers.Dense(7, activation='softmax')(x)
 
         # This is the model we will train:
@@ -177,7 +180,7 @@ class TransferLearning(Learning):
 
         # Extend the base model
         print("Using %s as the base model..." % (self.base_model_name))
-        self.extend()        
+        self.extend() 
         print("Done building the model.")
 
         if summary:
@@ -210,7 +213,7 @@ class TransferLearning(Learning):
             loss = "binary_crossentropy"
             metrics_ = ['accuracy', metrics.precision, metrics.recall]
         elif self.prediction_class_type == "multi":
-            loss = "sparse_categorical_crossentropy"
+            loss = "categorical_crossentropy"
             metrics_ = ['accuracy']
 
         self.model.compile(optimizer=keras.optimizers.SGD(lr=0.0001, momentum=0.9), loss=loss, metrics = metrics_)
@@ -236,7 +239,7 @@ class TransferLearning(Learning):
             loss = "binary_crossentropy"
             metrics_ = ['accuracy', metrics.precision, metrics.recall]
         elif self.prediction_class_type == "multi":
-            loss = "sparse_categorical_crossentropy"
+            loss = "categorical_crossentropy"
             metrics_ = ['accuracy']
 
         self.model.compile(
@@ -251,13 +254,30 @@ class TransferLearning(Learning):
 
 class TransferLearningFishOrNoFish(TransferLearning):
 
+    def __init__(self, *args, **kwargs):
+        """
+        TransferLearningLocalization initialization.
+        """
+        super().__init__(*args, **kwargs)
+
+        self.generator_chain = [
+            self.pl.augmented_generator,
+            self.pl.imagenet_preprocess_generator,
+            self.pl.drop_meta_generator,
+            self.pl.class_mapper_generator,
+            functools.partial(self.pl.mini_batch_generator, mini_batch_size = self.mini_batch_size),
+            self.pl.to_numpy_arrays_generator
+        ]
+
+
     def extend(self):
         """
         Extend the model by stacking new (dense) layers on top of the network
         """
         x = self.base_model.output
-        x = keras.layers.GlobalAveragePooling2D()(x)
-        x = keras.layers.Dense(1024, activation='relu')(x)
+        #x = keras.layers.GlobalAveragePooling2D()(x)
+        x = keras.layers.Flatten()(x)
+        #x = keras.layers.Dense(1024, activation='relu')(x)
         predictions = keras.layers.Dense(1, activation='sigmoid')(x)
 
         # This is the model we will train:
@@ -378,6 +398,123 @@ class TransferLearningLocalization(TransferLearning):
         
         # Train
         self.train(epochs, weights_name)
+
+class LearningFullyConvolutional(TransferLearning):
+
+    def __init__(self, *args, **kwargs):
+        """
+        TransferLearningLocalization initialization.
+        """
+        super().__init__(*args, **kwargs)
+
+    def extend(self, w, b, num_classes):
+        """
+        Extend the model by stacking new (dense) layers on top of the network
+        """
+
+        x = self.base_model.layers[-2].output
+
+        # A 1x1 convolution, with the same number of output channels as there are classes
+        fullyconv = keras.layers.Convolution2D(num_classes, 1, 1, name="fullyconv")(x)
+
+        # Softmax on last axis of tensor to normalize the class
+        # predictions in each spatial area
+        output = customlayers.SoftmaxMap(axis=-1)(fullyconv)
+
+        # This is fully convolutional model:
+        self.model = keras.models.Model(input=self.base_model.input, output=output)
+
+        last_layer = self.model.layers[-2]
+
+        print("Loaded weight shape:", w.shape)
+        print("Last conv layer weights shape:", last_layer.get_weights()[0].shape)
+
+        # Set weights of fullyconv layer:
+        w_reshaped = w.reshape((1, 1, 2048, num_classes))
+
+        last_layer.set_weights([w_reshaped, b])
+
+    def build(self, weights_file = None, num_classes = 1000):
+        if weights_file == None:
+            self.base_model = ResNet50(include_top = False, weights = 'imagenet')
+
+            # Load weights of the regular last dense layer of ResNet50
+            import h5py
+            h5f = h5py.File(os.path.join(settings.IMAGENET_DIR, 'resnet_weights_dense.h5'),'r')
+            w = h5f['w'][:]
+            b = h5f['b'][:]
+            h5f.close()
+        else:
+            # Get the trained model
+            trained_model = keras.models.load_model(os.path.join(settings.WEIGHTS_DIR, weights_file))
+            print(trained_model.summary())
+            
+            # Get the base model (i.e., without the last dense layer)
+            trained_base_model = keras.models.Model(input=trained_model.input, output=trained_model.layers[-3].output)
+
+            # Get the bare (untrained) ResNet50 architecture and load in the trained model's weights
+            resnet = ResNet50(include_top = False, weights = None)
+            resnet.set_weights(trained_base_model.get_weights())
+
+            # Set it as the base model
+            self.base_model = resnet
+
+            # Get the weights of the trained model's last dense layer
+            weights = trained_model.layers[-1].get_weights()
+            w = weights[0]
+            b = weights[1]
+
+        self.extend(w, b, num_classes)
+
+    def forward_pass_resize(self, img, img_size):
+        from keras.applications.imagenet_utils import preprocess_input
+
+        img_raw = img
+        print("img shape before resizing: %s" % (img_raw.shape,))
+
+        # Resize
+        img = scipy.misc.imresize(img_raw, size=img_size).astype("float32")
+
+        # Add axis
+        img = img[np.newaxis]
+
+        # Preprocess for use in imagenet        
+        img = preprocess_input(img)
+
+        print("img batch size shape before forward pass:", img.shape)
+        z = self.model.predict(img)
+
+        return z
+
+    def build_heatmap(self, img, img_size):
+        probas = self.forward_pass_resize(img, img_size)
+
+        synset = "n02512053"
+
+        import imagenettool
+
+        #ids = imagenettool.synset_to_dfs_ids(synset)
+        #ids = np.array([id_ for id_ in ids if id_ is not None])
+        x = probas[0, :, :, np.array([0])].sum(axis=0)
+        print("size of heatmap: " + str(x.shape))
+        return x
+
+    def build_multi_scale_heatmap(self, img, ids = None):
+
+        shape = img.shape
+
+        heatmaps = []
+        
+        for scale in [2.0, 1.75, 1.25, 1.0]:
+            size = (round(shape[0] * scale), round(shape[1] * scale), shape[2])
+            heatmaps.append(self.build_heatmap(img, size))
+
+        largest_heatmap_shape = heatmaps[0].shape
+
+        heatmaps = [scipy.misc.imresize(heatmap, largest_heatmap_shape).astype("float32") for heatmap in heatmaps]
+        geom_avg_heatmap = np.power(functools.reduce(lambda x, y: x*y, heatmaps), 1.0 / len(heatmaps))
+        
+        return geom_avg_heatmap
 
 def build():
     model = keras.models.Sequential()

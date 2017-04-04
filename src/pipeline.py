@@ -45,8 +45,14 @@ class Pipeline:
             self.augmentation_mode = 'moderate'
         else:
             raise ValueError("data_type should be 'original', 'ground_truth_cropped', 'candidates_cropped' or 'candidates_cropped_8_classes'. Got: %s" % data_type)
+        
         self.data_type = data_type
         print("Pipeline generating data from",self.data_type," in ",self.augmentation_mode,"augmentation mode")
+
+
+        self.classes = self.get_classes()
+
+
     def load_original(self, dataset):
         """
         Load the data
@@ -73,6 +79,16 @@ class Pipeline:
     
     def get_data(self):
         return self.data
+
+    def get_classes(self):
+        # Remove duplications and sort the classes:
+        return sorted(list(set(self.data['y'])))
+
+    def class_to_one_hot_encoding(self, clss):
+        encoding = np.zeros(len(self.classes))
+        idx = self.classes.index(clss)
+        encoding[idx] = 1
+        return encoding
 
     def _data_generator(self, xs, ys, metas, infinite = False, shuffle = False):
         """
@@ -206,6 +222,7 @@ class Pipeline:
         
         augmentation = settings.AUGMENTATION[self.augmentation_mode]
         imagegen = ImageDataGenerator(
+<<<<<<< HEAD
                 #rescale =               augmentation['RESCALE'],
                 rotation_range =        augmentation['ROTATION_RANGE'],
                 shear_range =           augmentation['SHEAR_RANGE'],
@@ -215,6 +232,17 @@ class Pipeline:
                 horizontal_flip =       augmentation['HORIZONTAL_FLIP'],
                 vertical_flip =         augmentation['VERTICAL_FLIP'],
                 channel_shift_range =   augmentation['CHANNEL_SHIFT_RANGE']
+=======
+                rescale = None,
+                rotation_range = settings.AUGMENTATION_ROTATION_RANGE,
+                shear_range = settings.AUGMENTATION_SHEAR_RANGE,
+                zoom_range = settings.AUGMENTATION_ZOOM_RANGE,
+                width_shift_range = settings.AUGMENTATION_WIDTH_SHIFT_RANGE,
+                height_shift_range = settings.AUGMENTATION_HEIGHT_SHIFT_RANGE,
+                horizontal_flip = settings.AUGMENTATION_HORIZONTAL_FLIP,
+                vertical_flip = settings.AUGMENTATION_VERTICAL_FLIP,
+                channel_shift_range = settings.AUGMENTATION_CHANNEL_SHIFT_RANGE
+>>>>>>> master
                 )  
         
         augm = augmentor.Augmentor(imagegen, self.augmentation_mode) 
@@ -230,6 +258,16 @@ class Pipeline:
         for g in generator:
             g = list(g)
             g[0] = scipy.misc.imresize(g[0], size)
+            yield tuple(g)
+
+    def imagenet_preprocess_generator(self, generator):
+        from keras.applications.imagenet_utils import preprocess_input
+
+        for g in generator:
+            g = list(g)
+            img = g[0]
+            img = img[np.newaxis]
+            g[0] = preprocess_input(img)[0]
             yield tuple(g)
 
     def mini_batch_generator(self, generator, as_numpy_array = True, mini_batch_size = 32):
@@ -266,6 +304,14 @@ class Pipeline:
     def class_mapper_generator(self, generator):
         for x, y in generator:
             yield x, self.class_to_index_mapper(y)
+
+    def one_hot_encoding_generator(self, generator):
+        for g in generator:
+            g = list(g)
+            y = g[1]
+            one_hot_encoding = self.class_to_one_hot_encoding(y)
+            g[1] = one_hot_encoding
+            yield tuple(g)
 
     def to_numpy_arrays_generator(self, generator):
         for x, y in generator:
@@ -419,7 +465,7 @@ class DataLoader:
             print('Unknown candidate data set: ' + dataset)
             exit()
 
-        for cand_file_name in glob.glob(os.path.join(cand_dir, '*.json')):
+        for cand_file_name in sorted(glob.glob(os.path.join(cand_dir, '*.json'))):
             with open(cand_file_name) as data_file:
                 data = json.load(data_file)
                 for d in data:
@@ -463,7 +509,7 @@ class DataLoader:
 
             dir = os.path.join(settings.TRAIN_GROUND_TRUTH_CROPPED_IMAGES_DIR, clss)
 
-            filenames = glob.glob(os.path.join(dir, "*.jpg"))
+            filenames = sorted(glob.glob(os.path.join(dir, "*.jpg")))
             for filename in filenames:
                 name = self.get_file_name_part(filename)
                 
@@ -517,7 +563,7 @@ class DataLoader:
             elif dataset == "test":
                 dir = os.path.join(settings.TEST_CANDIDATES_CROPPED_IMAGES_DIR)
 
-            filenames = glob.glob(os.path.join(dir, "*.jpg"))
+            filenames = sorted(glob.glob(os.path.join(dir, "*.jpg")))
             for filename in filenames:
                 name = self.get_file_name_part(filename)
                 
@@ -633,7 +679,7 @@ class DataLoader:
 
                 dir = os.path.join(settings.TRAIN_ORIGINAL_IMAGES_DIR, clss)
 
-                filenames = glob.glob(os.path.join(dir, "*.jpg"))
+                filenames = sorted(glob.glob(os.path.join(dir, "*.jpg")))
                 for filename in filenames:
                     name = self.get_file_name_part(filename)
                 
@@ -655,7 +701,7 @@ class DataLoader:
             return {'x': x, 'y': y, 'meta': m}
 
         elif dataset == "test":
-            for filename in glob.glob(os.path.join(settings.TEST_ORIGINAL_IMAGES_DIR, '*.jpg')):
+            for filename in sorted(glob.glob(os.path.join(settings.TEST_ORIGINAL_IMAGES_DIR, '*.jpg'))):
                 name = self.get_file_name_part(filename)
             
                 if file_filter is not None and name not in file_filter:
@@ -678,7 +724,7 @@ class DataLoader:
         :param filename: The name of the file to load
         :return: The image as an ndarray
         """
-        return scipy.misc.imread(filename)
+        return scipy.misc.imread(filename).astype("float32")
 
     def get_file_name_part(self, full_path):
         """

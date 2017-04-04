@@ -1,5 +1,6 @@
 import collections
 import numpy as np
+import random
 import scipy.linalg
 import scipy.misc
 import skimage.color
@@ -83,6 +84,30 @@ def rgb2yuv(arr):
 def yuv2rgb(arr):
     arr = skimage.util.dtype.img_as_float(arr)
     return clamp(np.dot(arr, rgb_from_yuv.T.copy()))
+
+def random_negative_boxes(img, positives, num_fps):
+    mean_bbox_width = 200
+    mean_bbox_height = 150
+    neg_overlap_ratio = 0.10
+    
+    shape = img.shape
+    
+    intersection_bbox = lambda cand, fish: max(0, min(cand['x']+cand['width'], fish['x']+fish['width']) - max(cand['x'], fish['x'])) * max(0, min(cand['y']+cand['height'], fish['y']+fish['height']) - max(cand['y'], fish['y']))
+    containment_ratio = lambda cand, fish: intersection_bbox(cand, fish) / float(fish['width']*fish['height'])
+    
+    crops = []
+    while len(crops) < num_fps:
+        width = int(mean_bbox_width*random.lognormvariate(0, 0.75))
+        height = int(mean_bbox_height*random.lognormvariate(0, 0.5))
+        x = int((shape[1]-width) * random.random())
+        y = int((shape[0]-height) * random.random())
+        crop = {'x': x, 'y': y, 'width': width, 'height': height}
+        
+        if not any(containment_ratio(crop, bbox) > neg_overlap_ratio for bbox in positives):
+            crops.append(crop)
+    
+    return crops
+    
 
 def zoom_box(bounding_box, img_shape, zoom_factor = 0.7, output_dict=False):
     (size_y, size_x, channels) = img_shape

@@ -15,13 +15,15 @@ class Augmentor(keras.preprocessing.image.ImageDataGenerator):
     def random_blur(self, x):
         augmentation = settings.AUGMENTATION[self.augmentation_mode]
         radius = np.random.uniform(augmentation['BLUR_RANGE'][0], augmentation['BLUR_RANGE'][1])
-        x = PIL.Image.fromarray(x)
+        x = PIL.Image.fromarray(x.astype("uint8"))
         x = x.filter(PIL.ImageFilter.GaussianBlur(radius=radius))
-        x = np.array(x)
+        x = np.array(x).astype("float32")
         return x
 
     def augment(self, x):
+        print(1,x.mean())
         x = self.random_blur(x)
+        print(2,x.mean())
         x = self.imageDataGenerator.random_transform(x.astype(K.floatx()))
-        x = self.imageDataGenerator.standardize(x)
+        print(3,x.mean())
         return x
