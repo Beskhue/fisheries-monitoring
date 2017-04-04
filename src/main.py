@@ -95,46 +95,28 @@ def example_augmentation():
         plt.show()
 
 def example_fully_convolutional():
-    
-    def display_img_and_heatmap(img, heatmap):
-        import matplotlib.pyplot as plt
-        import scipy.misc
-
-        plt.figure(figsize=(12, 8))
-        plt.subplot(1, 3, 1)
-        plt.imshow(img.astype("uint8"))
-        plt.axis('off')
-        plt.subplot(1, 3, 2)
-        plt.imshow(heatmap, interpolation='nearest', cmap="viridis")
-        plt.axis('off')
-        plt.subplot(1, 3, 3)
-        
-        plt.imshow(img.astype("uint8"))
-        heatmap_resized = scipy.misc.imresize(heatmap, img.shape)
-        plt.imshow(heatmap_resized, interpolation='nearest', cmap="viridis", alpha=0.5)
-        plt.axis('off')
-        plt.show()
 
     import heatmap as hm
 
+    # Load the heatmap segmenter
     segmenter = hm.Segmenter()
 
     pl = pipeline.Pipeline(data_type = "original")
+    data = pl.get_data()
+    
+    i = 0
+    for x, y, meta in zip(data['x'], data['y'], data['meta']):
 
-    generator = pl.data_generator_builder(shuffle = True)
-
-    for x, y, meta in generator:
+        i += 1
 
         if y == "ALB":
             continue
 
+        print("Index: %s" % (i - 1))
+        x = x()
+
+        # Find the bounding boxes
         segmenter.find_bounding_boxes(x)
-
-        # heatmap = segmenter.heatmap(x)
-        # print("Min heatmap value: %s, max heatmap value: %s, mean heatmap value: %s" % (heatmap.min(), heatmap.max(), heatmap.mean()))
-
-        # heatmap_high = np.maximum(heatmap - np.median(heatmap), 0)
-        # display_img_and_heatmap(x, heatmap_high)
 
 def train_network():
     """
