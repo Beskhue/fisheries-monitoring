@@ -496,11 +496,15 @@ def crop_images(dataset, *,
     
     if ground_truth:
         metastr = "bounding_boxes"
+        zoom_factor = 0.7
     else:
         if crop_type == "candidates":
+            zoom_factor = 0.7
             metastr = "candidates"
         elif crop_type == "fullyconv":
+            zoom_factor = 1
             metastr = "candidates_fullyconv"
+        
         pos_overlap_ratio = 0.65
         pos_minor_overlap_ratio = 0.1
         pos_containment_ratio = 0.50
@@ -547,7 +551,7 @@ def crop_images(dataset, *,
         # For each crop...
         cand_bboxes = meta[metastr]
         bboxes = cand_bboxes + preprocessing.random_negative_boxes(img, cand_bboxes, num_FPs)
-        crops = zip(*preprocessing.crop(img, bboxes))
+        crops = zip(*preprocessing.crop(img, bboxes, zoom_factor=zoom_factor))
         
         for i in range(len(bboxes)):
             cand_bbox = bboxes[i]
