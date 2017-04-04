@@ -326,8 +326,8 @@ def fine_tune_ground_truth_fish_or_no_fish_resnet_network():
     tl.build('resnet', input_shape = (300, 300, 3), summary = False)
     tl.fine_tune_extended(
         epochs = 70,
-        input_weights_name = "fishnofish.ext_resnet.toptrained.e034-tloss0.2205-vloss0.2006.hdf5",
-        n_layers = 25)
+        input_weights_name = "fishnofish.ground_truth.ext_resnet.toptrained.e041-tloss0.1008-vloss0.0756.hdf5",
+        n_layers = 75)
 
 def train_top_fish_or_no_fish_vgg_network():
     """
