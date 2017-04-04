@@ -7,8 +7,8 @@ from time import strftime
 
 # Directory settings
 
-#ROOT_DIR = '/vol/tensusers/vgarciacazorla/fm'
-ROOT_DIR = os.path.normpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
+ROOT_DIR = '/vol/tensusers/vgarciacazorla/fm'
+#ROOT_DIR = os.path.normpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
 DATA_DIR = os.path.join(ROOT_DIR, "data")
 OUTPUT_DIR = os.path.join(ROOT_DIR, "output")
 
@@ -70,8 +70,8 @@ CLASS_INDEX_TO_NAME_MAPPING = {v: k for k, v in CLASS_NAME_TO_INDEX_MAPPING.item
 ## Data augmentation
 AUGMENTATION = {
     'agressive':{   
-            'RESCALE':                 1./255,
-            'ROTATION_RANGE':          360,  
+            #'RESCALE':               1./255,
+            'ROTATION_RANGE':         360,  
             'SHEAR_RANGE':            0.1,    
             'ZOOM_RANGE':             [0.55, 0.85],   
             'WIDTH_SHIFT_RANGE':      0.2,  
@@ -96,4 +96,4 @@ AUGMENTATION = {
 
 ## Classification settings
 FISH_OR_NO_FISH_CLASSIFICATION_NETWORK_WEIGHT_NAME = "ext_xception.finetuned.e048-tloss0.3673-vloss0.3271.hdf5"
-FISH_TYPE_CLASSIFICATION_NETWORK_WEIGHT_NAME       = "insert_fish_type_classification_weights_file_here.hdf5"
+FISH_TYPE_CLASSIFICATION_NETWORK_WEIGHT_NAME       = "ext_xception.toptrainedcandidates_cropped_8_classes_multi.e000-tloss1.4002-vloss1.3851.hdf5"

@@ -206,7 +206,7 @@ class Pipeline:
         
         augmentation = settings.AUGMENTATION[self.augmentation_mode]
         imagegen = ImageDataGenerator(
-                rescale =               augmentation['RESCALE'],
+                #rescale =               augmentation['RESCALE'],
                 rotation_range =        augmentation['ROTATION_RANGE'],
                 shear_range =           augmentation['SHEAR_RANGE'],
                 zoom_range =            augmentation['ZOOM_RANGE'],

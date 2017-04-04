@@ -33,12 +33,13 @@ class Learning:
 
         self.model = None
         self.prediction_class_type = prediction_class_type
+        self.data_type = data_type
         self.class_balance_method = class_balance_method
         self.mini_batch_size = mini_batch_size
         self.tensor_board = tensor_board
         self.validate = validate
 
-        self.pl = pipeline.Pipeline(data_type = data_type, class_filter = class_filter)
+        self.pl = pipeline.Pipeline(data_type = self.data_type, class_filter = class_filter)
 
         self.generators = {}
         self.generator_chain = [
@@ -99,7 +100,7 @@ class Learning:
             os.makedirs(settings.WEIGHTS_OUTPUT_DIR)
 
         # Save the model with best validation accuracy during training
-        weights_name = weights_name + ".e{epoch:03d}-tloss{loss:.4f}-vloss{val_loss:.4f}.hdf5"
+        weights_name = weights_name +self.data_type+"_"+self.prediction_class_type+ ".e{epoch:03d}-tloss{loss:.4f}-vloss{val_loss:.4f}.hdf5"
         weights_path = os.path.join(settings.WEIGHTS_OUTPUT_DIR, weights_name)
         checkpoint = keras.callbacks.ModelCheckpoint(
             weights_path,
@@ -175,7 +176,7 @@ class TransferLearning(Learning):
         self.model_name = extended_model_name
 
         # Extend the base model
-        print("Building %s using %s as the base model..." % (self.model_name, self.base_model_name))
+        print("Using %s as the base model..." % (self.base_model_name))
         self.extend()        
         print("Done building the model.")
 
@@ -194,7 +195,7 @@ class TransferLearning(Learning):
         :param n_layers: freeze every layer from the bottom of the extended model until the nth layer. Default is
         126 which is reasonable for the Xception model
         """
-
+        #print(os.path.join(settings.WEIGHTS_DIR,input_weights_name))
         # Load weights
         self.model.load_weights(os.path.join(settings.WEIGHTS_DIR,input_weights_name))
 
