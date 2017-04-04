@@ -264,7 +264,7 @@ class TransferLearningFishOrNoFish(TransferLearning):
             self.pl.imagenet_preprocess_generator,
             self.pl.drop_meta_generator,
             self.pl.class_mapper_generator,
-            functools.partial(self.pl.mini_batch_generator, mini_batch_size = mini_batch_size),
+            functools.partial(self.pl.mini_batch_generator, mini_batch_size = self.mini_batch_size),
             self.pl.to_numpy_arrays_generator
         ]
 
@@ -276,7 +276,7 @@ class TransferLearningFishOrNoFish(TransferLearning):
         x = self.base_model.output
         #x = keras.layers.GlobalAveragePooling2D()(x)
         x = keras.layers.Flatten()(x)
-        x = keras.layers.Dense(1024, activation='relu')(x)
+        #x = keras.layers.Dense(1024, activation='relu')(x)
         predictions = keras.layers.Dense(1, activation='sigmoid')(x)
 
         # This is the model we will train:
