@@ -301,6 +301,34 @@ def fine_tune_fish_or_no_fish_resnet_network():
         input_weights_name = "fishnofish.ext_resnet.toptrained.e034-tloss0.2205-vloss0.2006.hdf5",
         n_layers = 25)
 
+def train_top_ground_truth_fish_or_no_fish_resnet_network():
+    """
+    Train the top of the extended resnet fish or no fish network.
+    """
+
+    import network
+
+    tl = network.TransferLearningFishOrNoFish(class_balance_method = "batch", prediction_class_type = "single", data_type = "fish_no_fish_ground_truth_cropped")
+
+    tl.build('resnet', input_shape = (300, 300, 3), summary = False)
+    tl.train_top(epochs = 100)
+
+def fine_tune_ground_truth_fish_or_no_fish_resnet_network():
+    """
+    Fine-tune the extended resnet fish or no fish network. To do this, first the top
+    of the extended resnet network must have been trained already.
+    """
+
+    import network
+
+    tl = network.TransferLearningFishOrNoFish(class_balance_method = "batch", prediction_class_type = "single", data_type = "fish_no_fish_ground_truth_cropped")
+
+    tl.build('resnet', input_shape = (300, 300, 3), summary = False)
+    tl.fine_tune_extended(
+        epochs = 70,
+        input_weights_name = "fishnofish.ext_resnet.toptrained.e034-tloss0.2205-vloss0.2006.hdf5",
+        n_layers = 25)
+
 def train_top_fish_or_no_fish_vgg_network():
     """
     Train the top of the extended inceptionv4 fish or no fish network.
@@ -552,6 +580,9 @@ if __name__ == "__main__":
         #
         train_top_fish_or_no_fish_resnet_network,
         fine_tune_fish_or_no_fish_resnet_network,
+        #
+        train_top_ground_truth_fish_or_no_fish_resnet_network,
+        fine_tune_ground_truth_fish_or_no_fish_resnet_network,
         #
         train_top_fish_or_no_fish_vgg_network,
         fine_tune_fish_or_no_fish_vgg_network,
