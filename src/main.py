@@ -130,6 +130,7 @@ def example_fully_convolutional():
             continue
 
         heatmap = netw.build_multi_scale_heatmap(x)
+        print("Min heatmap value: %s, max heatmap value: %s, mean heatmap value: %s" % (heatmap.min(), heatmap.max(), heatmap.mean()))
         display_img_and_heatmap(x, heatmap)
 
 def train_network():
