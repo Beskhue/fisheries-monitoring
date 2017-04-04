@@ -35,6 +35,9 @@ class Pipeline:
             self.load_original(dataset = dataset)
         elif data_type == "ground_truth_cropped":
             self.load_precropped_ground_truth()
+        elif data_type == "fish_no_fish_ground_truth_cropped":
+            self.load_precropped_ground_truth()
+            self.class_to_index_mapper = lambda clss: 0 if clss == "NoF" else 1
         elif data_type == "candidates_cropped":
             self.load_precropped_candidates(dataset = dataset)
             self.class_to_index_mapper = lambda clss: 0 if clss == "negative" else 1
