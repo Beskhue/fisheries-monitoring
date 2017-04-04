@@ -78,6 +78,21 @@ def example_crop_plot():
     plt.ylabel('some numbers')
     plt.show()
 
+def example_augmentation():
+
+    import matplotlib.pyplot as plt
+
+    pl = pipeline.Pipeline(data_type = "ground_truth_cropped")
+
+    generator = pl.data_generator_builder(pl.augmented_generator)
+    
+    for x, y, meta in generator:
+        
+        plt.figure()
+        plt.imshow(x.astype("uint8"))
+        plt.axis("off")
+        plt.show()
+
 def example_fully_convolutional():
     
     def display_img_and_heatmap(img, heatmap):
@@ -86,14 +101,14 @@ def example_fully_convolutional():
 
         plt.figure(figsize=(12, 8))
         plt.subplot(1, 3, 1)
-        plt.imshow(img)
+        plt.imshow(img.astype("uint8"))
         plt.axis('off')
         plt.subplot(1, 3, 2)
         plt.imshow(heatmap, interpolation='nearest', cmap="viridis")
         plt.axis('off')
         plt.subplot(1, 3, 3)
         
-        plt.imshow(img)
+        plt.imshow(img.astype("uint8"))
         heatmap_resized = scipy.misc.imresize(heatmap, img.shape)
         plt.imshow(heatmap_resized, interpolation='nearest', cmap="viridis", alpha=0.5)
         plt.axis('off')
@@ -102,7 +117,7 @@ def example_fully_convolutional():
     import network
 
     netw = network.LearningFullyConvolutional()
-    netw.build(weights_file = "classification.ext_resnet.toptrained.e067-tloss0.8109-vloss0.8126.hdf5", num_classes = 7)
+    netw.build(weights_file = "classification.ext_resnet.toptrained.e003-tloss0.2131-vloss0.4505.hdf5", num_classes = 7)
 
     pl = pipeline.Pipeline(data_type = "original")
 
@@ -509,6 +524,7 @@ if __name__ == "__main__":
     run(example,
         example_train_and_validation_split,
         example_crop_plot,
+        example_augmentation,
         #
         train_network,
         #

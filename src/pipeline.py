@@ -205,7 +205,7 @@ class Pipeline:
         from keras.preprocessing.image import ImageDataGenerator
 
         imagegen = ImageDataGenerator(
-                rescale = settings.AUGMENTATION_RESCALE,
+                rescale = None,
                 rotation_range = settings.AUGMENTATION_ROTATION_RANGE,
                 shear_range = settings.AUGMENTATION_SHEAR_RANGE,
                 zoom_range = settings.AUGMENTATION_ZOOM_RANGE,
@@ -627,7 +627,7 @@ class DataLoader:
         :param filename: The name of the file to load
         :return: The image as an ndarray
         """
-        return scipy.misc.imread(filename)
+        return scipy.misc.imread(filename).astype("float32")
 
     def get_file_name_part(self, full_path):
         """
