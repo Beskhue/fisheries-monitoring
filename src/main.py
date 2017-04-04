@@ -117,7 +117,7 @@ def example_fully_convolutional():
     import network
 
     netw = network.LearningFullyConvolutional()
-    netw.build(weights_file = "classification.ext_resnet.toptrained.e003-tloss0.2131-vloss0.4505.hdf5", num_classes = 7)
+    netw.build(weights_file = "fishornot.preprocfixed.ext_resnet.finetuned.e143-tloss0.1416-vloss0.1492.hdf5", num_classes = 1)
 
     pl = pipeline.Pipeline(data_type = "original")
 

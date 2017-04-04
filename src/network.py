@@ -401,14 +401,20 @@ class LearningFullyConvolutional(TransferLearning):
         # A 1x1 convolution, with the same number of output channels as there are classes
         fullyconv = keras.layers.Convolution2D(num_classes, 1, 1, name="fullyconv")(x)
 
-        # Softmax on last axis of tensor to normalize the class
-        # predictions in each spatial area
-        output = customlayers.SoftmaxMap(axis=-1)(fullyconv)
+        if num_classes > 1:
+            # Softmax on last axis of tensor to normalize the class
+            # predictions in each spatial area
+            output = customlayers.SoftmaxMap(axis=-1)(fullyconv)
+        else:
+            output = fullyconv
 
         # This is fully convolutional model:
         self.model = keras.models.Model(input=self.base_model.input, output=output)
 
-        last_layer = self.model.layers[-2]
+        if num_classes > 1:
+            last_layer = self.model.layers[-2]
+        else:
+            last_layer = self.model.layers[-1]
 
         print("Loaded weight shape:", w.shape)
         print("Last conv layer weights shape:", last_layer.get_weights()[0].shape)
@@ -430,7 +436,7 @@ class LearningFullyConvolutional(TransferLearning):
             h5f.close()
         else:
             # Get the trained model
-            trained_model = keras.models.load_model(os.path.join(settings.WEIGHTS_DIR, weights_file))
+            trained_model = keras.models.load_model(os.path.join(settings.WEIGHTS_DIR, weights_file), custom_objects={'precision': metrics.precision, 'recall': metrics.recall})
             print(trained_model.summary())
             
             # Get the base model (i.e., without the last dense layer)
