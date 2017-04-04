@@ -115,26 +115,26 @@ def example_fully_convolutional():
         plt.axis('off')
         plt.show()
 
-    import network
+    import heatmap as hm
 
-    netw = network.LearningFullyConvolutional()
-    netw.build(weights_file = "fishornot.preprocfixed.ext_resnet.finetuned.e143-tloss0.1416-vloss0.1492.hdf5", num_classes = 1)
+    segmenter = hm.Segmenter()
 
     pl = pipeline.Pipeline(data_type = "original")
 
     generator = pl.data_generator_builder(shuffle = True)
-
 
     for x, y, meta in generator:
 
         if y == "ALB":
             continue
 
-        heatmap = netw.build_multi_scale_heatmap(x)
-        print("Min heatmap value: %s, max heatmap value: %s, mean heatmap value: %s" % (heatmap.min(), heatmap.max(), heatmap.mean()))
+        segmenter.find_bounding_boxes(x)
 
-        heatmap_high = np.maximum(heatmap - np.median(heatmap), 0)
-        display_img_and_heatmap(x, heatmap_high)
+        # heatmap = segmenter.heatmap(x)
+        # print("Min heatmap value: %s, max heatmap value: %s, mean heatmap value: %s" % (heatmap.min(), heatmap.max(), heatmap.mean()))
+
+        # heatmap_high = np.maximum(heatmap - np.median(heatmap), 0)
+        # display_img_and_heatmap(x, heatmap_high)
 
 def train_network():
     """
@@ -258,7 +258,7 @@ def train_top_fish_or_no_fish_network():
 
     import network
 
-    tl = network.TransferLearningFishOrNoFish(class_balance_method = "batch", prediction_class_type = "single", data_type = "candidates_cropped")
+    tl = network.TransferLearningFishOrNoFish(class_balance_method = "batch", prediction_class_type = "single", data_type = "fish_no_fish_candidates_cropped")
 
     tl.build('xception', summary = False)
     tl.train_top(epochs = 70)
@@ -271,7 +271,7 @@ def fine_tune_fish_or_no_fish_network():
 
     import network
 
-    tl = network.TransferLearningFishOrNoFish(class_balance_method = "batch", prediction_class_type = "single", data_type = "candidates_cropped")
+    tl = network.TransferLearningFishOrNoFish(class_balance_method = "batch", prediction_class_type = "single", data_type = "fish_no_fish_candidates_cropped")
 
     tl.build('xception', summary = False)
     tl.fine_tune_extended(
@@ -286,7 +286,7 @@ def train_top_fish_or_no_fish_resnet_network():
 
     import network
 
-    tl = network.TransferLearningFishOrNoFish(class_balance_method = "batch", prediction_class_type = "single", data_type = "candidates_cropped")
+    tl = network.TransferLearningFishOrNoFish(class_balance_method = "batch", prediction_class_type = "single", data_type = "fish_no_fish_candidates_cropped")
 
     tl.build('resnet', input_shape = (300, 300, 3), summary = False)
     tl.train_top(epochs = 100)
@@ -299,7 +299,7 @@ def fine_tune_fish_or_no_fish_resnet_network():
 
     import network
 
-    tl = network.TransferLearningFishOrNoFish(class_balance_method = "batch", prediction_class_type = "single", data_type = "candidates_cropped")
+    tl = network.TransferLearningFishOrNoFish(class_balance_method = "batch", prediction_class_type = "single", data_type = "fish_no_fish_candidates_cropped")
 
     tl.build('resnet', input_shape = (300, 300, 3), summary = False)
     tl.fine_tune_extended(
@@ -342,7 +342,7 @@ def train_top_fish_or_no_fish_vgg_network():
 
     import network
 
-    tl = network.TransferLearningFishOrNoFish(class_balance_method = "batch", prediction_class_type = "single", data_type = "candidates_cropped")
+    tl = network.TransferLearningFishOrNoFish(class_balance_method = "batch", prediction_class_type = "single", data_type = "fish_no_fish_candidates_cropped")
     
     tl.build('vgg19', input_shape = (300, 300, 3), summary = False)
     
@@ -356,7 +356,7 @@ def fine_tune_fish_or_no_fish_vgg_network():
 
     import network
 
-    tl = network.TransferLearningFishOrNoFish(class_balance_method = "batch", prediction_class_type = "single", data_type = "candidates_cropped")
+    tl = network.TransferLearningFishOrNoFish(class_balance_method = "batch", prediction_class_type = "single", data_type = "fish_no_fish_candidates_cropped")
 
     tl.build('vgg19', input_shape = (300, 300, 3), summary = False)
     tl.fine_tune_extended(

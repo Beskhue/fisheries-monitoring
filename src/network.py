@@ -13,6 +13,7 @@ from keras.applications import Xception # TensorFlow ONLY
 from keras.applications import VGG16
 from keras.applications import VGG19
 import scipy.misc
+import skimage.transform
 import numpy as np
 import metrics
 import customlayers
@@ -406,7 +407,8 @@ class LearningFullyConvolutional(TransferLearning):
             # predictions in each spatial area
             output = customlayers.SoftmaxMap(axis=-1)(fullyconv)
         else:
-            output = fullyconv
+            # output = fullyconv
+            output = keras.layers.Activation("sigmoid")(fullyconv)
 
         # This is fully convolutional model:
         self.model = keras.models.Model(input=self.base_model.input, output=output)
@@ -414,7 +416,7 @@ class LearningFullyConvolutional(TransferLearning):
         if num_classes > 1:
             last_layer = self.model.layers[-2]
         else:
-            last_layer = self.model.layers[-1]
+            last_layer = self.model.layers[-2]
 
         print("Loaded weight shape:", w.shape)
         print("Last conv layer weights shape:", last_layer.get_weights()[0].shape)
@@ -497,7 +499,7 @@ class LearningFullyConvolutional(TransferLearning):
 
         largest_heatmap_shape = heatmaps[0].shape
 
-        heatmaps = [scipy.misc.imresize(heatmap, largest_heatmap_shape).astype("float32") for heatmap in heatmaps]
+        heatmaps = [skimage.transform.resize(heatmap, largest_heatmap_shape, preserve_range = True).astype("float32") for heatmap in heatmaps]
         geom_avg_heatmap = np.power(functools.reduce(lambda x, y: x*y, heatmaps), 1.0 / len(heatmaps))
         
         return geom_avg_heatmap
