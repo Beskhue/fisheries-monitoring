@@ -4,6 +4,7 @@ import skimage.measure
 import numpy as np
 import settings
 import network
+from preprocessing import zoom_box
 
 class Segmenter():
     def __init__(self):
@@ -20,9 +21,9 @@ class Segmenter():
         # return np.maximum(heatmap - np.percentile(heatmap, q = 0.75), 0)
         return (heatmap > 0.85) * 1
 
-    def find_bounding_boxes(self, img):
+    def find_bounding_boxes(self, img, display = False):
 
-        def display_img_and_heatmap(img, heatmap, bounding_boxes):
+        def display_img_and_heatmap(img, heatmap, bounding_boxes, zoomed_bounding_boxes):
             import matplotlib.pyplot as plt
             import matplotlib.patches
             import scipy.misc
@@ -47,6 +48,9 @@ class Segmenter():
                 rect = matplotlib.patches.Rectangle((bounding_box['x'], bounding_box['y']), bounding_box['width'], bounding_box['height'], linewidth = 1, edgecolor = 'r', fill = False)
                 ax.add_patch(rect)
 
+            for bounding_box in zoomed_bounding_boxes:
+                rect = matplotlib.patches.Rectangle((bounding_box['x'], bounding_box['y']), bounding_box['width'], bounding_box['height'], linewidth = 1, edgecolor = 'g', fill = False)
+                ax.add_patch(rect)
 
             plt.axis('off')
             plt.show()
@@ -70,6 +74,7 @@ class Segmenter():
 
         # Generate bounding boxes
         bounding_boxes = []
+        zoomed_bounding_boxes = []
 
         for region_prop in region_properties:
             if region_prop['area'] <= 10:
@@ -86,10 +91,12 @@ class Segmenter():
                 'height': round(float(h) / heatmap_height * img_height)
             }
 
+            # Zoom out the bounding box
+            zoomed_box = zoom_box(box, img.shape, zoom_factor = 0.7, output_dict = True)
             bounding_boxes.append(box)
+            zoomed_bounding_boxes.append(zoomed_box)
 
-        print(bounding_boxes)
+        if display:
+            display_img_and_heatmap(img, heatmap, bounding_boxes, zoomed_bounding_boxes)
 
-        # blobs_doh = skimage.feature.blob_doh(heatmap)
-
-        display_img_and_heatmap(img, heatmap, bounding_boxes)
+        return zoomed_bounding_boxes

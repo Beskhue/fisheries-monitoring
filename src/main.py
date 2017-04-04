@@ -116,7 +116,7 @@ def example_fully_convolutional():
         x = x()
 
         # Find the bounding boxes
-        segmenter.find_bounding_boxes(x)
+        segmenter.find_bounding_boxes(x, display = True)
 
 def train_network():
     """
