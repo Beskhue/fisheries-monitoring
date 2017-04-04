@@ -153,9 +153,9 @@ def train_top_xception_network():
 
     import network
 
-    tl = network.TransferLearning(data_type = "ground_truth_cropped", class_filter = ["NoF"])
+    tl = network.TransferLearning(data_type = "candidates_cropped", class_balance_method = "batch", class_filter = ["NoF"])
 
-    tl.build('xception', summary = False)
+    tl.build('xception', input_shape = (300,300,3), summary = False)
     tl.train_top(epochs = 70)
 
 def fine_tune_xception_network():
@@ -166,9 +166,9 @@ def fine_tune_xception_network():
 
     import network
 
-    tl = network.TransferLearning(data_type = "ground_truth_cropped", class_filter = ["NoF"])
+    tl = network.TransferLearning(data_type = "candidates_cropped", class_balance_method = "batch", class_filter = ["NoF"])
 
-    tl.build('xception', summary = False)
+    tl.build('xception', input_shape = (300,300,3), summary = False)
     tl.fine_tune_extended(
         epochs = 70,
         input_weights_name = "ext_xception_toptrained.hdf5",
@@ -209,9 +209,9 @@ def train_top_vgg_network():
 
     import network
 
-    tl = network.TransferLearning(data_type = "candidates_cropped", class_filter = ["NoF"])
+    tl = network.TransferLearning(data_type = "candidates_cropped", class_balance_method = "batch", class_filter = ["NoF"])
 
-    tl.build('vgg19', summary = False)
+    tl.build('vgg19', input_shape = (300,300,3), summary = False)
     tl.train_top(epochs = 70)
 
 def fine_tune_vgg_network():
@@ -222,9 +222,9 @@ def fine_tune_vgg_network():
 
     import network
 
-    tl = network.TransferLearning(data_type = "candidates_cropped", class_filter = ["NoF"])
+    tl = network.TransferLearning(data_type = "candidates_cropped", class_balance_method = "batch", class_filter = ["NoF"])
 
-    tl.build('vgg19', summary = False)
+    tl.build('vgg19', input_shape = (300,300,3), summary = False)
     tl.fine_tune_extended(
         epochs = 70,
         input_weights_name = "ext_xception_toptrained.hdf5",
@@ -403,7 +403,7 @@ def convert_annotations_to_darknet(single_class = False):
 
 def crop_images(dataset, *, 
                 crop_type : parameters.one_of(("candidates", "Create crops using the candidate regions."), ("ground_truth", "Create crops using the ground truth fish bounding boxes."), case_sensitive = True) = "candidates", 
-                num_FPs = 80,
+                num_FPs = 5,
                 no_histogram_matching = False):
     """
     Crop images in the data using either bounding box annotations or generated candidates. Creates one crop for each bounding box / candidate.
@@ -469,6 +469,9 @@ def crop_images(dataset, *,
         
         intersection = lambda cand, fish: max(0, min(cand['x']+cand['width'], fish['x']+fish['width']) - max(cand['x'], fish['x'])) * max(0, min(cand['y']+cand['height'], fish['y']+fish['height']) - max(cand['y'], fish['y']))
         containment_ratio = lambda cand, fish: intersection(cand, fish) / float(fish['width']*fish['height'])
+        
+        contains_most_of_fish = lambda cand, fish: containment_ratio(cand, fish) >= pos_overlap_ratio and containment_ratio(fish, cand) >= pos_minor_containment_ratio
+        is_mostly_fish = lambda cand, fish: containment_ratio(fish, cand) >= pos_containment_ratio and containment_ratio(cand, fish) >= pos_minor_overlap_ratio
 
     print("Cropping %s input images to %s..." % (len(imgs), settings.CROPS_OUTPUT_DIR))
 
@@ -521,15 +524,11 @@ def crop_images(dataset, *,
             else:
                 # Cropping the candidate regions
                 if dataset == 'train':
-                    box_x_low, box_x_high, box_y_low, box_y_high = preprocessing.zoom_box(cand_bbox, img.shape)
-                    cand_crop = {'x': box_x_low, 'width': box_x_high-box_x_low, 'y': box_y_low, 'height': box_y_high-box_y_low}
-                    
-                    if any(containment_ratio(cand_bbox, fish) >= pos_overlap_ratio and containment_ratio(fish, cand_bbox) >= pos_minor_containment_ratio for fish in ref_bboxes): # more than 65% of a fish is inside
-                        outcls = "positive"
-                    elif any(containment_ratio(fish, cand_bbox) >= pos_containment_ratio and containment_ratio(cand_bbox, fish) >= pos_minor_overlap_ratio for fish in ref_bboxes): # more than half of this b.box contains a fish (for overly large sharks)
-                        outcls = "positive"
-                    elif all(containment_ratio(cand_crop, fish) <= neg_overlap_ratio for fish in ref_bboxes): # negative even when zoomed out
-                        outcls = "negative"
+                    matching_fish = [fish for fish in ref_bboxes if contains_most_of_fish(cand_bbox, fish) or is_mostly_fish(cand_bbox, fish)]
+                    if len(matching_fish) > 0:
+                        outcls = matching_fish[0]['class']
+                    elif all(containment_ratio(preprocessing.zoom_box(cand_bbox, img.shape, output_dict=True), fish) <= neg_overlap_ratio for fish in ref_bboxes): # negative even when zoomed out
+                        outcls = "NoF"
                     else: # too ambiguous for fish-or-not training data
                         continue
                 else:
