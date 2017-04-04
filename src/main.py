@@ -115,22 +115,20 @@ def example_fully_convolutional():
         plt.axis('off')
         plt.show()
 
-    import network
+    import heatmap as hm
 
-    netw = network.LearningFullyConvolutional()
-    netw.build(weights_file = "fishornot.preprocfixed.ext_resnet.finetuned.e143-tloss0.1416-vloss0.1492.hdf5", num_classes = 1)
+    segmenter = hm.Segmenter()
 
     pl = pipeline.Pipeline(data_type = "original")
 
     generator = pl.data_generator_builder(shuffle = True)
-
 
     for x, y, meta in generator:
 
         if y == "ALB":
             continue
 
-        heatmap = netw.build_multi_scale_heatmap(x)
+        heatmap = segmenter.heatmap(x)
         print("Min heatmap value: %s, max heatmap value: %s, mean heatmap value: %s" % (heatmap.min(), heatmap.max(), heatmap.mean()))
 
         heatmap_high = np.maximum(heatmap - np.median(heatmap), 0)
