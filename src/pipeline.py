@@ -222,8 +222,7 @@ class Pipeline:
         
         augmentation = settings.AUGMENTATION[self.augmentation_mode]
         imagegen = ImageDataGenerator(
-<<<<<<< HEAD
-                #rescale =               augmentation['RESCALE'],
+                rescale =               augmentation['RESCALE'],
                 rotation_range =        augmentation['ROTATION_RANGE'],
                 shear_range =           augmentation['SHEAR_RANGE'],
                 zoom_range =            augmentation['ZOOM_RANGE'],
@@ -232,17 +231,6 @@ class Pipeline:
                 horizontal_flip =       augmentation['HORIZONTAL_FLIP'],
                 vertical_flip =         augmentation['VERTICAL_FLIP'],
                 channel_shift_range =   augmentation['CHANNEL_SHIFT_RANGE']
-=======
-                rescale = None,
-                rotation_range = settings.AUGMENTATION_ROTATION_RANGE,
-                shear_range = settings.AUGMENTATION_SHEAR_RANGE,
-                zoom_range = settings.AUGMENTATION_ZOOM_RANGE,
-                width_shift_range = settings.AUGMENTATION_WIDTH_SHIFT_RANGE,
-                height_shift_range = settings.AUGMENTATION_HEIGHT_SHIFT_RANGE,
-                horizontal_flip = settings.AUGMENTATION_HORIZONTAL_FLIP,
-                vertical_flip = settings.AUGMENTATION_VERTICAL_FLIP,
-                channel_shift_range = settings.AUGMENTATION_CHANNEL_SHIFT_RANGE
->>>>>>> master
                 )  
         
         augm = augmentor.Augmentor(imagegen, self.augmentation_mode) 

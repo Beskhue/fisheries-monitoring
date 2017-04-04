@@ -168,26 +168,31 @@ def fine_tune_xception_network():
         input_weights_name = "ext_xception_toptrained.hdf5",
         n_layers = 125)
 
-def train_top_xception_8_class_clf_network(epochs = 70):
+def train_top_xception_8_class_clf_on_candidates_network(epochs = 70):
     """
     Train the top of the extended xception network.
-    tl = network.TransferLearning8ClassCLF(data_type = "candidates_cropped_8_classes", class_filter = [], prediction_class_type = "multi", class_balance_method = "batch")
     """
-    tl.build('xception', summary = False)
+    import network
+    data_type = "candidates_cropped_8_classes"
+    #data_type = "ground_truth_cropped"
+    tl = network.TransferLearning8ClassCLF(data_type = data_type, class_filter = [], prediction_class_type = "multi", class_balance_method = "batch")
+    tl.build('vgg16', summary = True)
     tl.train_top(epochs = epochs)
 
-def fine_tune_xception_8_class_clf_network(layers_to_freeze_from_bottom = 125, epochs = 70):
+def fine_tune_xception_8_class_clf_on_candidates_network(layers_to_freeze_from_bottom = 125, epochs = 70):
     """
     Fine-tune the extended xception network. To do this, first the top
     of the extended xception network must have been trained already.
     """
     import network
-    tl = network.TransferLearning8ClassCLF(data_type = "candidates_cropped_8_classes", class_filter = [], prediction_class_type = "multi", class_balance_method = "batch")
+    #data_type = "candidates_cropped_8_classes"
+    data_type = "ground_truth_cropped"
+    tl = network.TransferLearning8ClassCLF(data_type = data_type, class_filter = [], prediction_class_type = "multi", class_balance_method = "batch")
 
-    tl.build('xception', summary = False)
+    tl.build('vgg16', summary = True)
     tl.fine_tune_extended(
         epochs = epochs,
-        input_weights_name = settings.FISH_TYPE_CLASSIFICATION_NETWORK_WEIGHT_NAME,
+        input_weights_name = 'top_trained_vgg16.hdf5',
         n_layers = layers_to_freeze_from_bottom)
 
 def train_top_resnet_network():
@@ -550,8 +555,8 @@ if __name__ == "__main__":
         train_top_xception_network,
         fine_tune_xception_network,
         #
-        train_top_xception_8_class_clf_network,
-        fine_tune_xception_8_class_clf_network,
+        train_top_xception_8_class_clf_on_candidates_network,
+        fine_tune_xception_8_class_clf_on_candidates_network,
         #
         train_top_vgg_network,
         fine_tune_vgg_network,

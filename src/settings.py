@@ -75,7 +75,7 @@ CLASS_INDEX_TO_NAME_MAPPING = {v: k for k, v in CLASS_NAME_TO_INDEX_MAPPING.item
 ## Data augmentation
 AUGMENTATION = {
     'agressive':{   
-            #'RESCALE':               1./255,
+            'RESCALE':               1./255,
             'ROTATION_RANGE':         360,  
             'SHEAR_RANGE':            0.1,    
             'ZOOM_RANGE':             [0.6, 0.9],   
@@ -86,7 +86,7 @@ AUGMENTATION = {
             'CHANNEL_SHIFT_RANGE':    20.0,
             'BLUR_RANGE':             [0., 1.5]},    
     'moderate':{   
-            #'RESCALE':                 1./255,
+            'RESCALE':                 1./255,
             'ROTATION_RANGE':          360,  
             'SHEAR_RANGE':            0.05,    
             'ZOOM_RANGE':             [0.9, 1],   
