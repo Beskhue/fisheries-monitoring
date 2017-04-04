@@ -62,7 +62,7 @@ class Segmenter():
 
 
         # Find connected regions in the binary image
-        labeled_heatmap = skimage.measure.label(heatmap)
+        labeled_heatmap = skimage.measure.label(heatmap, connectivity = 1)
         region_properties = skimage.measure.regionprops(labeled_heatmap)
 
         (img_width, img_height, img_channels)  = img.shape
