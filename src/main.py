@@ -128,11 +128,13 @@ def example_fully_convolutional():
         if y == "ALB":
             continue
 
-        heatmap = segmenter.heatmap(x)
-        print("Min heatmap value: %s, max heatmap value: %s, mean heatmap value: %s" % (heatmap.min(), heatmap.max(), heatmap.mean()))
+        segmenter.find_bounding_boxes(x)
 
-        heatmap_high = np.maximum(heatmap - np.median(heatmap), 0)
-        display_img_and_heatmap(x, heatmap_high)
+        # heatmap = segmenter.heatmap(x)
+        # print("Min heatmap value: %s, max heatmap value: %s, mean heatmap value: %s" % (heatmap.min(), heatmap.max(), heatmap.mean()))
+
+        # heatmap_high = np.maximum(heatmap - np.median(heatmap), 0)
+        # display_img_and_heatmap(x, heatmap_high)
 
 def train_network():
     """
