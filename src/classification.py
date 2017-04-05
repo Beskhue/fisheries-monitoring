@@ -142,14 +142,13 @@ def classify_fish_type(params:prep_classif):
     for x, meta in zip(data['x'], data['meta']):
         #x = np.array(x)
 
-        if fish_or_no_fish[meta['filename']] > 0.5:
 
-            img = x()
-            img = np.array([img])
+        img = x()
+        img = np.array([img])
 
-            predictions = model.predict(img, batch_size = 1)
+        predictions = model.predict(img, batch_size = 1)
             
-            fish_type_classification[meta['filename']] = [float(pred) for pred in predictions.tolist()[0]]
+        fish_type_classification[meta['filename']] = [float(pred) for pred in predictions.tolist()[0]]
         
         n_imgs += 1
         if n_imgs % 100 == 0:
@@ -176,6 +175,8 @@ def classify_image(params:prep_classif):
     import shutil
     from time import strftime
 
+    threshold = 0.5
+    
     # Load fish type classifications
     inpath = os.path.join(params.fish_type_classification_dir, "classification.json")
     with open(inpath, 'r') as infile:
@@ -190,14 +191,16 @@ def classify_image(params:prep_classif):
     for meta in data['meta']:
         name = meta['filename']
 
-        if name in fish_type_classification:
-            # There is a classification for this crop
-            original_img = meta['original_image']
+        if fish_type_classification[name] > threshold:
+            
+            if name in fish_type_classification:
+                # There is a classification for this crop
+                original_img = meta['original_image']
+    
+                if original_img not in cand_classifications:
+                    cand_classifications[original_img] = []
 
-            if original_img not in cand_classifications:
-                cand_classifications[original_img] = []
-
-            cand_classifications[original_img].append(fish_type_classification[name])
+                cand_classifications[original_img].append(fish_type_classification[name])
             
     outpath2 = os.path.join(params.fish_type_classification_dir, "aggregatedclassification-%s.json" % strftime("%Y%m%dT%H%M%S"))
     with open(outpath2, 'w') as outfile:
