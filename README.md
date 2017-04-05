@@ -193,6 +193,41 @@ Move the output crops from `output/crops/_timestamp_` to `data/train/cropped_can
 
 ## Stage 3
 
-...
+Classify the candidate crops as being a fish or not a fish.
 
-...
+```
+python src/classification.py classify-fish-no-fish test
+```
+
+## Stage 4
+
+Classify crop fish types.
+
+```
+python src/classification.py classify-fish-type test
+```
+
+## Stage 5a
+
+Potentially tie multiple classifications produced in stages 3 and 4 together using an esemble learner.
+
+```
+python
+from ensembler import train_ensemble, ensemble_predict
+
+train_ensemble('fish_or_not', ['preprocfixed'])
+ensemble_predict('fish_or_not', ['preprocfixed'])
+
+train_ensemble('fish_type', ['-8'])
+ensemble_predict('fish_type', ['-8'])
+```
+
+
+## Stage 5b
+
+Classify the full image, based on the classified candidates.
+
+```
+python src/classification.py classify-image test
+```
+
