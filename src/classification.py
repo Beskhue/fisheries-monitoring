@@ -1,3 +1,4 @@
+import math
 from clize import run
 from clize.parameters import argument_decorator
 import os
@@ -218,6 +219,7 @@ def classify_image(params:prep_classif):
             img_classifications[name] = [0.001,0.001,0.001,0.001,0.993,0.001,0.001,0.001]
         else:
 
+            """
             # We grab the prediction of the candidate where the main classification is assigned the most confidence.
             # Note that a most-confident NoF classification is never chosen, unless all candidates have NoF as the
             # most-confident prediction.
@@ -252,7 +254,41 @@ def classify_image(params:prep_classif):
                 img_classifications[name] = cand_classifications[name][idx_most_certain_non_nof]
             else:
                 img_classifications[name] = cand_classifications[name][idx_most_certain_nof]
-            
+            """
+
+            # Find the NoF predictions
+
+            nof_confidences = []
+
+            for cand_classification in cand_classifications[name]:
+                nof_confidences.append(cand_classification[4])
+
+            epsilon = 0.00000001
+
+            #                 ALB  BET  DOL  LAG  OTHER SHARK YFT
+            classification = [0.0, 0.0, 0.0, 0.0, 0.0,  0.0,  0.0]
+
+            for cand_classification in cand_classifications[name]:
+                classification = [a + math.log(b) for a, b in zip(classification, cand_classification[:4] + cand_classification[5:])]
+
+            classification = list(map(lambda a: a - max(classification), classification))
+            classification = list(map(lambda a: math.exp(a), classification))
+            classification = list(map(lambda a: a / sum(classification), classification))
+
+            #                     ALB  BET  DOL  LAG  NoF OTHER SHARK YFT
+            img_classification = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0,  0.0,  0.0]
+            img_classification[0] = classification[0]
+            img_classification[1] = classification[1]
+            img_classification[2] = classification[2]
+            img_classification[3] = classification[3]
+            img_classification[4] = min(nof_confidences) # Least confident NoF predicition
+            img_classification[5] = classification[4]
+            img_classification[6] = classification[5]
+            img_classification[7] = classification[6]
+
+            img_classification = list(map(lambda a: a / sum(img_classification), img_classification))
+
+            img_classifications[name] = img_classification
             
     # Output in kaggle format
     class_order = [0, 1, 2, 3, 4, 5, 6, 7]
