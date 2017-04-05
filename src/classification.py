@@ -75,7 +75,7 @@ def classify_fish_or_no_fish(params:prep_classif):
     import shutil
     from time import strftime
     
-    ppl = pipeline.Pipeline(data_type = "candidates_cropped", dataset = params.dataset)
+    ppl = pipeline.Pipeline(data_type = "candidates_fullyconv_cropped", dataset = params.dataset)
 
     # Load fish-or-no-fish classification model
     model = keras.models.load_model(os.path.join(settings.WEIGHTS_DIR, settings.FISH_OR_NO_FISH_CLASSIFICATION_NETWORK_WEIGHT_NAME), custom_objects={'precision': metrics.precision, 'recall': metrics.recall})
@@ -123,7 +123,7 @@ def classify_fish_type(params:prep_classif):
     
     threshold = 0.5
 
-    ppl = pipeline.Pipeline(data_type = "candidates_cropped", dataset = params.dataset)
+    ppl = pipeline.Pipeline(data_type = "candidates_fullyconv_cropped", dataset = params.dataset)
 
     # Load fish type classification model
     model = keras.models.load_model(os.path.join(settings.WEIGHTS_DIR, settings.FISH_TYPE_CLASSIFICATION_NETWORK_WEIGHT_NAME), custom_objects={'precision': metrics.precision, 'recall': metrics.recall})
@@ -142,14 +142,13 @@ def classify_fish_type(params:prep_classif):
     for x, meta in zip(data['x'], data['meta']):
         #x = np.array(x)
 
-        if fish_or_no_fish[meta['filename']] > 0.5:
 
-            img = x()
-            img = np.array([img])
+        img = x()
+        img = np.array([img])
 
-            predictions = model.predict(img, batch_size = 1)
+        predictions = model.predict(img, batch_size = 1)
             
-            fish_type_classification[meta['filename']] = [float(pred) for pred in predictions.tolist()[0]]
+        fish_type_classification[meta['filename']] = [float(pred) for pred in predictions.tolist()[0]]
         
         n_imgs += 1
         if n_imgs % 100 == 0:
@@ -176,12 +175,14 @@ def classify_image(params:prep_classif):
     import shutil
     from time import strftime
 
+    threshold = 0.5
+    
     # Load fish type classifications
     inpath = os.path.join(params.fish_type_classification_dir, "classification.json")
     with open(inpath, 'r') as infile:
         fish_type_classification = json.load(infile)
 
-    ppl = pipeline.Pipeline(data_type = "candidates_cropped", dataset = params.dataset)
+    ppl = pipeline.Pipeline(data_type = "candidates_fullyconv_cropped", dataset = params.dataset)
     data = ppl.get_data()
 
 
@@ -190,14 +191,16 @@ def classify_image(params:prep_classif):
     for meta in data['meta']:
         name = meta['filename']
 
-        if name in fish_type_classification:
-            # There is a classification for this crop
-            original_img = meta['original_image']
+        if fish_type_classification[name] > threshold:
+            
+            if name in fish_type_classification:
+                # There is a classification for this crop
+                original_img = meta['original_image']
+    
+                if original_img not in cand_classifications:
+                    cand_classifications[original_img] = []
 
-            if original_img not in cand_classifications:
-                cand_classifications[original_img] = []
-
-            cand_classifications[original_img].append(fish_type_classification[name])
+                cand_classifications[original_img].append(fish_type_classification[name])
             
     outpath2 = os.path.join(params.fish_type_classification_dir, "aggregatedclassification-%s.json" % strftime("%Y%m%dT%H%M%S"))
     with open(outpath2, 'w') as outfile:
