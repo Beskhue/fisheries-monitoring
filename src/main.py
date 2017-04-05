@@ -153,7 +153,7 @@ def fine_tune_xception_network():
     tl.build('xception', input_shape = (300,300,3), summary = False)
     tl.fine_tune_extended(
         epochs = 200,
-        input_weights_name = "ext_xception_toptrained.hdf5",
+        input_weights_name = "ext_xception.finetuned.e006-tloss7.3628-vloss7.3885.hdf5",
         n_layers = 125)
 
 def train_top_resnet_network():
@@ -550,11 +550,13 @@ def crop_images(dataset, *,
         
         # For each crop...
         cand_bboxes = meta[metastr]
-        bboxes = cand_bboxes + preprocessing.random_negative_boxes(img, cand_bboxes, num_FPs)
-        crops = zip(*preprocessing.crop(img, bboxes, zoom_factor=zoom_factor))
+        if ground_truth:
+            cand_bboxes.extend(preprocessing.random_negative_boxes(img, cand_bboxes, num_FPs))
         
-        for i in range(len(bboxes)):
-            cand_bbox = bboxes[i]
+        crops = zip(*preprocessing.crop(img, cand_bboxes, zoom_factor=zoom_factor))
+        
+        for i in range(len(cand_bboxes)):
+            cand_bbox = cand_bboxes[i]
             n += 1
             
             if ground_truth or dataset == 'train':
@@ -568,10 +570,16 @@ def crop_images(dataset, *,
             else:
                 # Cropping the candidate regions
                 if dataset == 'train':
-                    matching_fish = [fish for fish in ref_bboxes if contains_most_of_fish(cand_bbox, fish) or is_mostly_fish(cand_bbox, fish)]
+                    if crop_type == "candidates":
+                        matching_fish = [fish for fish in ref_bboxes if contains_most_of_fish(cand_bbox, fish) or is_mostly_fish(cand_bbox, fish)]
+                        zoomed_crop = preprocessing.zoom_box(cand_bbox, img.shape, output_dict=True)
+                    elif crop_type == "fullyconv":
+                        matching_fish = sorted([fish for fish in ref_bboxes if containment_ratio(cand_bbox, fish) > neg_overlap_ratio], key=lambda fish: containment_ratio(fish, cand_bbox), reverse=True)
+                        zoomed_crop = cand_bbox
+                    
                     if len(matching_fish) > 0:
                         outcls = matching_fish[0]['class']
-                    elif all(containment_ratio(preprocessing.zoom_box(cand_bbox, img.shape, output_dict=True), fish) <= neg_overlap_ratio for fish in ref_bboxes): # negative even when zoomed out
+                    elif all(containment_ratio(zoomed_crop, fish) <= neg_overlap_ratio for fish in ref_bboxes): # negative even when zoomed out
                         outcls = "NoF"
                     else: # too ambiguous for fish-or-not training data
                         continue

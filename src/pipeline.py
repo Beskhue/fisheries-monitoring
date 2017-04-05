@@ -633,9 +633,10 @@ class DataLoader:
                     meta['candidates_fullyconv'] = candidates_fullyconv[name]
             
                 x.append((lambda filename, meta: lambda: f_middleware(self.load(filename), meta))(filename, meta))
+                y.append(None)
                 m.append(meta)
         
-            return {'x': x, 'meta': m}
+            return {'x': x, 'y': y, 'meta': m}
 
     def load(self, filename):
         """
