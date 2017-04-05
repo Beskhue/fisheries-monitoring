@@ -128,11 +128,6 @@ def classify_fish_type(params:prep_classif):
     # Load fish type classification model
     model = keras.models.load_model(os.path.join(settings.WEIGHTS_DIR, settings.FISH_TYPE_CLASSIFICATION_NETWORK_WEIGHT_NAME), custom_objects={'precision': metrics.precision, 'recall': metrics.recall})
 
-    # Load fish-or-no-fish classifications
-    inpath = os.path.join(params.fish_or_no_fish_classification_dir, "classification.json")
-    with open(inpath, 'r') as infile:
-        fish_or_no_fish = json.load(infile)
-
     data = ppl.get_data()
 
     fish_type_classification = {}
@@ -185,13 +180,17 @@ def classify_image(params:prep_classif):
     ppl = pipeline.Pipeline(data_type = "candidates_fullyconv_cropped", dataset = params.dataset)
     data = ppl.get_data()
 
+    # Load fish-or-no-fish classifications
+    inpath = os.path.join(params.fish_or_no_fish_classification_dir, "classification.json")
+    with open(inpath, 'r') as infile:
+        fish_or_no_fish = json.load(infile)
 
     cand_classifications = {}
     # Aggregate classifications of bounding boxes to original image level
     for meta in data['meta']:
         name = meta['filename']
 
-        if fish_type_classification[name] > threshold:
+        if fish_or_no_fish[name] > threshold:
             
             if name in fish_type_classification:
                 # There is a classification for this crop
