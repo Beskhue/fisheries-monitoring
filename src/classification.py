@@ -215,7 +215,7 @@ def classify_image(params:prep_classif):
         if name not in cand_classifications: # no candidates are proposed (or no proposed candidates are accepted by the fish-or-no-fish ensemble)
             print('Image has zero detected fish candidates: ' + name)
             #                            ALB   BET   DOL   LAG   NoF   OTHER SHARK YFT
-            img_classifications[name] = [0.001,0.001,0.001,0.001,0.991,0.001,0.001,0.001]
+            img_classifications[name] = [0.001,0.001,0.001,0.001,0.993,0.001,0.001,0.001]
         else:
 
             # We grab the prediction of the candidate where the main classification is assigned the most confidence.
