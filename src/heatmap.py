@@ -17,9 +17,9 @@ class Segmenter():
     def normalize(self, heatmap):
         return (heatmap - heatmap.min()) / (heatmap.max() - heatmap.min()) 
 
-    def find_high_activation(self, heatmap):
+    def find_high_activation(self, heatmap, thr):
         # return np.maximum(heatmap - np.percentile(heatmap, q = 0.75), 0)
-        return (heatmap > 0.85) * 1
+        return (heatmap > thr) * 1
 
     def find_bounding_boxes(self, img, display = False):
 
@@ -54,20 +54,26 @@ class Segmenter():
 
             plt.axis('off')
             plt.show()
-
+        
+        size_thr = 15
+        
         heatmap = self.heatmap(img)
 
         # Get a binary image of regions with high activation
-        heatmap = self.find_high_activation(heatmap)
+        heatmap = self.find_high_activation(heatmap, 0.85)
         
         # Morphologically open and then close the image to remove islands and remove gaps
         heatmap = skimage.morphology.binary_opening(heatmap)
         heatmap = skimage.morphology.binary_closing(heatmap)
 
-
         # Find connected regions in the binary image
         labeled_heatmap = skimage.measure.label(heatmap, connectivity = 1)
         region_properties = skimage.measure.regionprops(labeled_heatmap)
+        
+        if all(region_prop['area'] <= size_thr for region_prop in region_properties):
+            # Lower threshold and repeat in case of uncertainty
+            print('Lowered threshold')
+            size_thr = 7
 
         (img_width, img_height, img_channels)  = img.shape
         (heatmap_width, heatmap_height) = heatmap.shape
@@ -77,7 +83,7 @@ class Segmenter():
         zoomed_bounding_boxes = []
 
         for region_prop in region_properties:
-            if region_prop['area'] <= 10:
+            if region_prop['area'] <= size_thr:
                 continue
 
             y1, x1, y2, x2 = region_prop['bbox']

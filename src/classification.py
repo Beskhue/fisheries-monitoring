@@ -198,7 +198,7 @@ def classify_image(params:prep_classif):
                 cand_classifications[original_img] = []
 
             cand_classifications[original_img].append(fish_type_classification[name])
-    
+            
     outpath2 = os.path.join(params.fish_type_classification_dir, "aggregatedclassification-%s.json" % strftime("%Y%m%dT%H%M%S"))
     with open(outpath2, 'w') as outfile:
         json.dump(cand_classifications, outfile)
@@ -210,7 +210,6 @@ def classify_image(params:prep_classif):
     original_images = pipeline_original.get_data()
     for meta in original_images['meta']:
         name = meta['filename']
-
         # Use list of 7-class classification scores to generate one single 8-class classification score (how to deal with NoF?)
         if name not in cand_classifications: # only happens if fish-or-no-fish is too strict
             print('Image has zero detected fish candidates: ' + name)
@@ -219,18 +218,17 @@ def classify_image(params:prep_classif):
             img_classification = [0,0,0,0,0,0,0,0]
             for cand_classification in cand_classifications[name]:
                 # add up scores, score(NoF) = 1 - max(score for any fish type)
-                print(cand_classification)
-                img_classification = [a+b for a,b in zip(img_classification, cand_classification + [1-max(cand_classification)])]
+                img_classification = [a+b for a,b in zip(img_classification, cand_classification)]
             
             # softmax
             beta = 1
             img_classification = [math.exp(beta*(score - max(img_classification))) for score in img_classification]
-            img_classification = [score/sum(score) for score in img_classification]
+            img_classification = [score/sum(img_classification) for score in img_classification]
             img_classifications[name] = img_classification
             
             
     # Output in kaggle format
-    class_order = [0, 1, 2, 3, 7, 6, 4, 5]
+    class_order = [0, 1, 2, 3, 4, 5, 6, 7]
     outpath = os.path.join(params.fish_type_classification_dir, "submission.json")
     outpath2 = os.path.join(params.fish_type_classification_dir, "submission-%s.json" % strftime("%Y%m%dT%H%M%S"))
     with open(outpath, 'w', newline='') as subm_file:

@@ -4,7 +4,7 @@ import numpy as np
 import os
 import settings
 from sklearn import svm
-
+import pickle
 
 def train_ensemble(classif_type, model_filters=None):
     # Load models' predictions
@@ -58,8 +58,12 @@ def train_ensemble(classif_type, model_filters=None):
     
     # Fit ensemble learner
     print('Fitting classifier...')
-    m = svm.LinearSVC()
+    m = svm.LinearSVC(class_weight = 'balanced')
     m = m.fit(results,y)
+    
+    #pickle
+    p = pickle.dumps(m)
+    p1 = pickle.loads(p)
     
     # Evaluate
     print('Evaluating...')
@@ -88,8 +92,72 @@ def train_ensemble(classif_type, model_filters=None):
     
     # Save
     
-    
+def pred_prob()
+    if classif_type == 'fish_or_not':
+        path_to_json = settings.TEST_FISH_OR_NO_FISH_CLASSIFICATION_DIR
+    elif classif_type == 'fish_type':
+        path_to_json = settings.TEST_FISH_TYPE_CLASSIFICATION_DIR
+    else:
+        print('Unknown classification type: ' + classif_type)
+        exit()
+        
+    print('Loading models...')
+    json_files = sorted([pos_json for pos_json in os.listdir(path_to_json) if pos_json.endswith('.json') and not pos_json == 'classification.json'])
+    if model_filters is not None:
+        json_files = sorted([json_file for json_file in json_files if any(filter in json_file for filter in model_filters)])
 
+    models = []
+    for js in json_files:
+        with open(os.path.join(path_to_json, js)) as json_file:
+            models.append(json.load(json_file))        
+            
+    if len(models) == 0:
+        print('No eligible models found!')
+        exit()
+    
+    # Aggregate model predictions
+    images = []
+    results = []
+    for img in models[0].keys():
+        images.append(img)
+        resultforthiskey = []
+        for model in models:
+            if img not in model:
+                print('Image %s not found in some models; all models need to classify all images/crops' % img)
+                exit()
+            if classif_type == 'fish_or_not':
+                resultforthiskey.append(model[img])
+            else:
+                resultforthiskey.extend(model[img])
+        results.append(resultforthiskey)
+    
+    # Find true labels
+    print('Loading predictions...')
+    if classif_type == 'fish_or_not':
+        positives = set(os.listdir(os.path.join(settings.TEST_CANDIDATES_CROPPED_IMAGES_DIR, 'positive')))
+        y = [img + '.jpg' in positives for img in images]
+        num_preds = 1
+    else:
+        print('Fish type labels not implemented for ensembles yet')
+        exit()
+    
+    # Fit ensemble learner
+    print('Fitting classifier...')
+    m = svm.LinearSVC(class_weight = 'balanced')
+    m = m.fit(results,y)
+    
+    predictions = m.predict_proba()
+    
+    if not os.path.exists(settings.TEST_CANDIDATES_CROPPED_IMAGES_DIR):
+        os.makedirs(settings.TEST_CANDIDATES_CROPPED_IMAGES_DIR)
+    
+    outpath = os.path.join(settings.TEST_CANDIDATES_CROPPED_IMAGES_DIR, "predictions.json")
+    outpath2 = os.path.join(settings.TEST_CANDIDATES_CROPPED_IMAGES_DIR, "predictions-%s.json" % strftime("%Y%m%dT%H%M%S"))
+    with open(outpath, 'w') as outfile:
+        json.dump(predictions, outfile)
+    
+    shutil.copyfile(outpath, outpath2)
+    
 def binary_precision(ys, ypreds, thr=0.5):
     if not any(ypred>thr for ypred in ypreds):
         return -1
