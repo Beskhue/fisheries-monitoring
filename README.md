@@ -41,6 +41,10 @@ Place the competition data and bounding boxes into a directory structure as foll
 |   |   |   +-- ALB_candidates_0-x.json
 |   |   |   +-- ALB_candidates_x-y.json
 |   |   |       ...
+|   |   +-- bounding_boxes_candidates_fullyconv
+|   |   |   +-- ALB_candidates_0-x.json
+|   |   |   +-- ALB_candidates_x-y.json
+|   |   |       ...
 |   |   +-- cropped_ground_truth
 |   |   |   +-- ALB
 |   |   |   |   +-- img_1.jpg
@@ -48,10 +52,17 @@ Place the competition data and bounding boxes into a directory structure as foll
 |   |   |   +-- BET
 |   |   |       ...
 |   |   +-- cropped_candidates
-|   |   |   +-- negative
+|   |   |   +-- ALB
 |   |   |   |   +-- img_110.jpg
 |   |   |   |       ...
-|   |   |   +-- positive
+|   |   |   +-- BET
+|   |   |       ...
+|   |   +-- cropped_candidates_fullyconv
+|   |   |   +-- ALB
+|   |   |   |   +-- img_110.jpg
+|   |   |   |       ...
+|   |   |   +-- BET
+|   |   |       ...
 |   +-- test
 |   |   +-- original
 |   |   |   +-- img_00001.jpg
@@ -60,7 +71,14 @@ Place the competition data and bounding boxes into a directory structure as foll
 |   |   |   +-- candidates_0-x.json
 |   |   |   +-- candidates_x-y.json
 |   |   |       ...
+|   |   +-- bounding_boxes_candidates_fullyconv
+|   |   |   +-- candidates_0-x.json
+|   |   |   +-- candidates_x-y.json
+|   |   |       ...
 |   |   +-- cropped_candidates
+|   |   |   +-- img_1.jpg
+|   |   |       ...
+|   |   +-- cropped_candidates_fullyconv
 |   |   |   +-- img_1.jpg
 |   |   |       ...
 |   +-- weights
@@ -96,16 +114,16 @@ This will take roughly half an hour to complete. Note that multiple crops can be
 Run the following to prepare the fish region candidates for the training set:
 
 ```
-python src/main.py segment-dataset train
+python src/main.py segment-dataset train --type=fullyconv
 ```
 
-This will take a long time to complete (~1 day).
+This will take a few hours to complete.
 
 Optionally a range of images can be given which have to be segmented:
 
 ```
-python src/main.py segment-dataset train 0-99
-python src/main.py segment-dataset train 100-199
+python src/main.py segment-dataset train 0-99 --type=fullyconv
+python src/main.py segment-dataset train 100-199 --type=fullyconv
 ```
 
 Using this, multiple processes can be launched in parallel to segment different images.
@@ -115,10 +133,10 @@ Using this, multiple processes can be launched in parallel to segment different 
 Prepare the fish region candidate crops, including colorization through histogram matching for the "night vision" images:
 
 ```
-python src/main.py crop-images train --crop-type=candidates
+python src/main.py crop-images train --crop-type=fullyconv
 ```
 
-Many crops will be generated per image, and will be labeled either "negative" or "positive" using the ground truth bounding boxes. The images are placed in `output/crops/_timestamp_/`. Once the process is complete, move the generated crops to `data/train/cropped_candidates`.
+Usually at few crops will be generated per image, and will be labeled ("ALB", "BET", ..., "NoF") either using the ground truth bounding boxes. The images are placed in `output/crops/_timestamp_/`. Once the process is complete, move the generated crops to `data/train/cropped_candidates_fullyconv`.
 
 
 # Using the project to train a fish classifier from scratch
@@ -137,7 +155,7 @@ This saves weights in `output/weights/_timestamp_`. Copy the weights to `data/we
 
 ## Fine-tune the transfer-learned network
 
-(TODO: make this easier to work with). Edit `fine_tune_xception_network` in `main.py`: set `input_weights_name` to the file name of the weights copied in the previous step.
+Edit `fine_tune_xception_network` in `main.py`: set `input_weights_name` to the file name of the weights copied in the previous step.
 
 Run the following to fine-tune the trained network, this also trains some of the layers that had been pre-trained. (These steps are separated, as if we were to immediately update all layers, the pretrained layers would be updated with essentially random gradients).
 
@@ -146,3 +164,27 @@ python src/main.py fine-tune-xception-network
 ```
 
 The weights are saved in `data/weights`.
+
+# Classification / testing
+
+Using this setup, multiple steps are involved to classify a single image. First, night vision images are preprocessed to be colorized through histogram matching. Next, fish candidates are proposed for each image. The candidates are fed to a fish-or-not network ensemble. The candidates declared to be a fish are fed to a fish type ensemble.
+
+In practice, to classify a data set these stages are separated. First, propose candidates:
+
+```
+python src/classification.py propose-candidates-fullyconv test
+```
+
+Next, move the output candidates in `output/candidates/_timestamp_` to `data/test/bounding_boxes_candidates_fullyconv`.
+
+Create crops of these candidates:
+
+```
+python src/classification.py crop-candidates-fullyconv test
+```
+
+Move the output crops from `output/crops/_timestamp_` to `data/train/cropped_candidates_fullyconv`.
+
+...
+
+...
