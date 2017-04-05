@@ -629,8 +629,8 @@ class DataLoader:
                 meta['filename'] = name
                 if name in candidates:
                     meta['candidates'] = candidates[name]
-                if name in candidates_fullyconv[clss]:
-                    meta['candidates_fullyconv'] = candidates_fullyconv[clss][name]
+                if name in candidates_fullyconv:
+                    meta['candidates_fullyconv'] = candidates_fullyconv[name]
             
                 x.append((lambda filename, meta: lambda: f_middleware(self.load(filename), meta))(filename, meta))
                 m.append(meta)
