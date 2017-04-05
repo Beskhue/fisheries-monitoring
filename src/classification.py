@@ -75,7 +75,7 @@ def classify_fish_or_no_fish(params:prep_classif):
     import shutil
     from time import strftime
     
-    ppl = pipeline.Pipeline(data_type = "candidates_cropped", dataset = params.dataset)
+    ppl = pipeline.Pipeline(data_type = "candidates_fullyconv_cropped", dataset = params.dataset)
 
     # Load fish-or-no-fish classification model
     model = keras.models.load_model(os.path.join(settings.WEIGHTS_DIR, settings.FISH_OR_NO_FISH_CLASSIFICATION_NETWORK_WEIGHT_NAME), custom_objects={'precision': metrics.precision, 'recall': metrics.recall})
@@ -123,7 +123,7 @@ def classify_fish_type(params:prep_classif):
     
     threshold = 0.5
 
-    ppl = pipeline.Pipeline(data_type = "candidates_cropped", dataset = params.dataset)
+    ppl = pipeline.Pipeline(data_type = "candidates_fullyconv_cropped", dataset = params.dataset)
 
     # Load fish type classification model
     model = keras.models.load_model(os.path.join(settings.WEIGHTS_DIR, settings.FISH_TYPE_CLASSIFICATION_NETWORK_WEIGHT_NAME), custom_objects={'precision': metrics.precision, 'recall': metrics.recall})
@@ -182,7 +182,7 @@ def classify_image(params:prep_classif):
     with open(inpath, 'r') as infile:
         fish_type_classification = json.load(infile)
 
-    ppl = pipeline.Pipeline(data_type = "candidates_cropped", dataset = params.dataset)
+    ppl = pipeline.Pipeline(data_type = "candidates_fullyconv_cropped", dataset = params.dataset)
     data = ppl.get_data()
 
 

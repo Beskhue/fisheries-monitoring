@@ -27,6 +27,7 @@ TRAIN_FISH_OR_NO_FISH_CLASSIFICATION_DIR      = os.path.join(TRAIN_DIR, "fish_or
 TRAIN_FISH_TYPE_CLASSIFICATION_DIR            = os.path.join(TRAIN_DIR, "fish_type_classification")
 
 TEST_ORIGINAL_IMAGES_DIR                     = os.path.join(TEST_DIR, "original")
+TEST_CANDIDATES_CROPPED_IMAGES_DIR           = os.path.join(TEST_DIR, "cropped_candidates")
 TEST_CANDIDATES_FULLYCONV_CROPPED_IMAGES_DIR = os.path.join(TEST_DIR, "cropped_candidates_fullyconv")
 TEST_CANDIDATES_BOUNDING_BOXES_DIR           = os.path.join(TEST_DIR, "bounding_boxes_candidates")
 TEST_CANDIDATES_FULLYCONV_BOUNDING_BOXES_DIR = os.path.join(TEST_DIR, "bounding_boxes_candidates_fullyconv")
@@ -87,7 +88,7 @@ AUGMENTATION_CHANNEL_SHIFT_RANGE = 15.0
 AUGMENTATION_BLUR_RANGE = [0., 2.5]
 
 ## Classification settings
-FISH_OR_NO_FISH_CLASSIFICATION_NETWORK_WEIGHT_NAME = "insert_fish_or_no_fish_weights_file_here.hdf5"
+FISH_OR_NO_FISH_CLASSIFICATION_NETWORK_WEIGHT_NAME = "fishornot.preprocfixed.ext_resnet.finetuned.e143-tloss0.1416-vloss0.1492.hdf5"
 FISH_TYPE_CLASSIFICATION_NETWORK_WEIGHT_NAME       = "insert_fish_type_classification_weights_file_here.hdf5"
 
 ## Heatmap settings

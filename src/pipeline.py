@@ -40,8 +40,13 @@ class Pipeline:
             self.class_to_index_mapper = lambda clss: 0 if clss == "NoF" else 1
         elif data_type == "candidates_cropped":
             self.load_precropped_candidates(dataset = dataset)
+        elif data_type == "candidates_fullyconv_cropped":
+            self.load_precropped_candidates_fullyconv(dataset = dataset)
         elif data_type == "fish_no_fish_candidates_cropped":
             self.load_precropped_candidates(dataset = dataset)
+            self.class_to_index_mapper = lambda clss: 0 if clss == "NoF" else 1
+        elif data_type == "fish_no_fish_candidates_fullyconv_cropped":
+            self.load_precropped_candidates_fullyconv(dataset = dataset)
             self.class_to_index_mapper = lambda clss: 0 if clss == "NoF" else 1
         else:
             throw(ValueError("data_type should be 'original' or 'ground_truth_cropped'. Got: %s" % data_type))
@@ -65,6 +70,12 @@ class Pipeline:
         Load the pre-cropped data based on the candidates
         """
         self.data = self.data_loader.get_precropped_candidates_images(dataset = dataset, f_middleware = self.f_middleware)
+
+    def load_precropped_candidates_fullyconv(self, dataset):
+        """
+        Load the pre-cropped data based on the candidates
+        """
+        self.data = self.data_loader.get_precropped_candidates_fullyconv_images(dataset = dataset, f_middleware = self.f_middleware)
     
     def get_data(self):
         return self.data
@@ -513,7 +524,7 @@ class DataLoader:
 
     def get_precropped_candidates_images(self, dataset = "train", f_middleware = lambda *x: x[0], file_filter = None):
         """
-        Method to load the pre-cropped candidates train cases.
+        Method to load the pre-cropped candidates cases.
 
         :param dataset: The dataset to get data for (train, test)
         :param f_middleware: A function to execute on the loaded raw image, its class and the meta-information
@@ -545,6 +556,60 @@ class DataLoader:
                 dir = os.path.join(settings.TRAIN_CANDIDATES_CROPPED_IMAGES_DIR, clss)
             elif dataset == "test":
                 dir = os.path.join(settings.TEST_CANDIDATES_CROPPED_IMAGES_DIR)
+
+            filenames = sorted(glob.glob(os.path.join(dir, "*.jpg")))
+            for filename in filenames:
+                name = self.get_file_name_part(filename)
+                
+                if file_filter is not None and name not in file_filter:
+                    continue
+
+                meta = {}
+                meta['filename'] = name
+                meta['class'] = clss
+                meta['original_image'] = keys[name]
+
+                x.append((lambda filename, clss, meta: lambda: f_middleware(self.load(filename), clss, meta))(filename, clss, meta))
+                y.append(clss)
+                m.append(meta)
+
+
+        return {'x': x, 'y': y, 'meta': m}
+
+    def get_precropped_candidates_fullyconv_images(self, dataset = "train", f_middleware = lambda *x: x[0], file_filter = None):
+        """
+        Method to load the pre-cropped fullyconv candidates cases.
+
+        :param dataset: The dataset to get data for (train, test)
+        :param f_middleware: A function to execute on the loaded raw image, its class and the meta-information
+                             right after loading it. Should return the (pre-processed) image.
+        :param file_filter: A list of file names (in the form of 'img_01234') to limit the output to.
+
+        :return: A dictionary containing the list of classes (y) and list of (function to load) images (x), as well
+                 as a list of meta information for each image (meta).
+        """
+
+        y = []
+        x = []
+        m = []
+
+        if dataset == "train":
+            classes = self.get_classes()
+            with open(os.path.join(settings.TRAIN_CANDIDATES_FULLYCONV_CROPPED_IMAGES_DIR, "_keys.json"), 'r') as infile:
+                keys = json.load(infile)
+        elif dataset == "test":
+            classes = [None]
+            with open(os.path.join(settings.TEST_CANDIDATES_FULLYCONV_CROPPED_IMAGES_DIR, "_keys.json"), 'r') as infile:
+                keys = json.load(infile)
+
+        for clss in classes:
+            if clss in self.class_filter:
+                continue
+
+            if dataset == "train":
+                dir = os.path.join(settings.TRAIN_CANDIDATES_FULLYCONV_CROPPED_IMAGES_DIR, clss)
+            elif dataset == "test":
+                dir = os.path.join(settings.TEST_CANDIDATES_FULLYCONV_CROPPED_IMAGES_DIR)
 
             filenames = sorted(glob.glob(os.path.join(dir, "*.jpg")))
             for filename in filenames:
