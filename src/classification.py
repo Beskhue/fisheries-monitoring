@@ -213,9 +213,10 @@ def classify_image(params:prep_classif):
     for meta in original_images['meta']:
         name = meta['filename']
         # Use list of 7-class classification scores to generate one single 8-class classification score (how to deal with NoF?)
-        if name not in cand_classifications: # only happens if fish-or-no-fish is too strict
+        if name not in cand_classifications: # no candidates are proposed (or no proposed candidates are accepted by the fish-or-no-fish ensemble)
             print('Image has zero detected fish candidates: ' + name)
-            img_classifications[name] = [0.001,0.001,0.001,0.001,0.001,0.001,0.001,0.993]
+            #                            ALB   BET   DOL   LAG   NoF   OTHER SHARK YFT
+            img_classifications[name] = [0.001,0.001,0.001,0.001,0.991,0.001,0.001,0.001]
         else:
             img_classification = [0,0,0,0,0,0,0,0]
             for cand_classification in cand_classifications[name]:
