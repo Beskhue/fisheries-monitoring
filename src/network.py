@@ -153,7 +153,7 @@ class TransferLearning(Learning):
         # x = keras.layers.GlobalAveragePooling2D()(x)
         x = keras.layers.Flatten()(x)
         # x = keras.layers.Dense(1024, activation='relu')(x)
-        predictions = keras.layers.Dense(7, activation='softmax')(x)
+        predictions = keras.layers.Dense(8, activation='softmax')(x)
 
         # This is the model we will train:
         self.model = keras.models.Model(input=self.base_model.input, output=predictions)
