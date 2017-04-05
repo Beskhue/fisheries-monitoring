@@ -135,10 +135,10 @@ def train_top_xception_network():
 
     import network
 
-    tl = network.TransferLearning(data_type = "candidates_cropped", class_balance_method = "batch", class_filter = ["NoF"])
+    tl = network.TransferLearning(data_type = "candidates_cropped", class_balance_method = "batch", mini_batch_size=16)
 
     tl.build('xception', input_shape = (300,300,3), summary = False)
-    tl.train_top(epochs = 70)
+    tl.train_top(epochs = 150)
 
 def fine_tune_xception_network():
     """
@@ -148,11 +148,11 @@ def fine_tune_xception_network():
 
     import network
 
-    tl = network.TransferLearning(data_type = "candidates_cropped", class_balance_method = "batch", class_filter = ["NoF"])
+    tl = network.TransferLearning(data_type = "candidates_cropped", class_balance_method = "batch", mini_batch_size=16)
 
     tl.build('xception', input_shape = (300,300,3), summary = False)
     tl.fine_tune_extended(
-        epochs = 70,
+        epochs = 200,
         input_weights_name = "ext_xception_toptrained.hdf5",
         n_layers = 125)
 
@@ -401,13 +401,13 @@ def segment_dataset(dataset, index_range=None, *, type="colour", silent=False):
 
         for idx in img_idxs:
             x = data['x'][idx]
-            y = data['y'][idx]
             meta = data['meta'][idx]
             
             x = x()
             bboxes = segmenter.find_bounding_boxes(x)
 
             if dataset == "train":
+                y = data['y'][idx]
                 bounding_boxes[y]['bounding_boxes'].append({'filename': meta['filename'], 'candidates': bboxes})
             else:
                 bounding_boxes.append({'filename': meta['filename'], 'candidates': bboxes})
