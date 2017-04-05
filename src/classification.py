@@ -200,7 +200,7 @@ def classify_image(params:prep_classif):
                 if original_img not in cand_classifications:
                     cand_classifications[original_img] = []
 
-                cand_classifications[original_img].append(fish_type_classification[name])
+                cand_classifications[original_img].append({'p_fish': fish_or_no_fish[name], 'p_fish_types': fish_type_classification[name]})
             
     outpath2 = os.path.join(params.fish_type_classification_dir, "aggregatedclassification-%s.json" % strftime("%Y%m%dT%H%M%S"))
     with open(outpath2, 'w') as outfile:
@@ -261,7 +261,8 @@ def classify_image(params:prep_classif):
             nof_confidences = []
 
             for cand_classification in cand_classifications[name]:
-                nof_confidences.append(cand_classification[4])
+                p_fish_types = cand_classification['p_fish_types']
+                nof_confidences.append(p_fish_types[4])
 
             epsilon = 0.00000001
 
@@ -269,7 +270,10 @@ def classify_image(params:prep_classif):
             classification = [0.0, 0.0, 0.0, 0.0, 0.0,  0.0,  0.0]
 
             for cand_classification in cand_classifications[name]:
-                classification = [a + math.log(b) for a, b in zip(classification, cand_classification[:4] + cand_classification[5:])]
+                p_fish = cand_classification['p_fish']
+                p_fish_types = cand_classification['p_fish_types']
+
+                classification = [a + math.log(b * p_fish) for a, b in zip(classification, p_fish_types[:4] + p_fish_types[5:])]
 
             classification = list(map(lambda a: a - max(classification), classification))
             classification = list(map(lambda a: math.exp(a), classification))
