@@ -212,22 +212,46 @@ def classify_image(params:prep_classif):
     original_images = pipeline_original.get_data()
     for meta in original_images['meta']:
         name = meta['filename']
-        # Use list of 7-class classification scores to generate one single 8-class classification score (how to deal with NoF?)
         if name not in cand_classifications: # no candidates are proposed (or no proposed candidates are accepted by the fish-or-no-fish ensemble)
             print('Image has zero detected fish candidates: ' + name)
             #                            ALB   BET   DOL   LAG   NoF   OTHER SHARK YFT
-            img_classifications[name] = [0.001,0.001,0.001,0.001,0.991,0.001,0.001,0.001]
+            img_classifications[name] = [0.001,0.001,0.001,0.001,0.993,0.001,0.001,0.001]
         else:
-            img_classification = [0,0,0,0,0,0,0,0]
+
+            # We grab the prediction of the candidate where the main classification is assigned the most confidence.
+            # Note that a most-confident NoF classification is never chosen, unless all candidates have NoF as the
+            # most-confident prediction.
+            nof_idx = 4
+            most_certain_non_nof = 0
+            idx_most_certain_non_nof = None
+            most_certain_nof = 0
+            idx_most_certain_nof = None
+
+            idx_cand = 0
             for cand_classification in cand_classifications[name]:
-                # add up scores, score(NoF) = 1 - max(score for any fish type)
-                img_classification = [a+b for a,b in zip(img_classification, cand_classification)]
+
+                # Find index of the predicted fish type (i.e., the type with the highest probability according to the network)
+                idx_max = np.argmax(cand_classification)
+
+                if idx_max == nof_idx:
+                    # The predicted type is NoF
+
+                    if cand_classification[nof_idx] > most_certain_nof:
+                        most_certain_nof = cand_classification[nof_idx]
+                        idx_most_certain_nof = idx_cand
+                else:
+                    # The predicted type is not NoF
+
+                    if cand_classification[idx_max] > most_certain_non_nof:
+                        most_certain_non_nof = cand_classification[idx_max]
+                        idx_most_certain_non_nof = idx_cand
+
+                idx_cand += 1
             
-            # softmax
-            beta = 1
-            img_classification = [math.exp(beta*(score - max(img_classification))) for score in img_classification]
-            img_classification = [score/sum(img_classification) for score in img_classification]
-            img_classifications[name] = img_classification
+            if idx_most_certain_non_nof != None:
+                img_classifications[name] = cand_classifications[name][idx_most_certain_non_nof]
+            else:
+                img_classifications[name] = cand_classifications[name][idx_most_certain_nof]
             
             
     # Output in kaggle format
