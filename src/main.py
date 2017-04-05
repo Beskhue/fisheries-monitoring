@@ -396,7 +396,7 @@ def segment_dataset(dataset, index_range=None, *, type="colour", silent=False):
                 bounding_boxes[clss]['filename'] = '%s_candidates%s.json' % (clss, ('_%d-%d' % (min(img_idxs), max(img_idxs))))
                 bounding_boxes[clss]['bounding_boxes'] = []
         else:
-            filename = '%s_candidates%s.json' % (clss, ('_%d-%d' % (min(img_idxs), max(img_idxs))))
+            filename = 'candidates%s.json' % ('_%d-%d' % (min(img_idxs), max(img_idxs)))
             bounding_boxes = []
 
         for idx in img_idxs:
