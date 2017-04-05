@@ -181,7 +181,7 @@ def classify_image(params:prep_classif):
     with open(inpath, 'r') as infile:
         fish_type_classification = json.load(infile)
 
-    ppl = pipeline.Pipeline(data_type = "candidates_cropped", dataset = params.dataset)
+    ppl = pipeline.Pipeline(data_type = "candidates_fullyconv_cropped", dataset = params.dataset)
     data = ppl.get_data()
 
 
