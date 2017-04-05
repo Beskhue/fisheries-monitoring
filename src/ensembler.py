@@ -33,7 +33,10 @@ def train_ensemble(classif_type, model_filters=None):
             modelindices.append(modelindex)
             
             for key in model:
-                modelindex += len(model[key])
+                if isinstance(model[key], list):
+                    modelindex += len(model[key])
+                else:
+                    modelindex += 1
                 break
     modelindices.append(modelindex)
     
@@ -96,7 +99,7 @@ def train_ensemble(classif_type, model_filters=None):
     
     # Fit ensemble learner
     print('Fitting ensemble learner...')
-    m = svm.SVC(kernel='linear', probability=True, class_weight = 'balanced')
+    m = svm.SVC(kernel='rbf', probability=True, class_weight = 'balanced')
     m = m.fit(results,ys)
     
     outpath = os.path.join(path_to_json, "ensemble.pickle")
@@ -135,7 +138,7 @@ def train_ensemble(classif_type, model_filters=None):
     shutil.copyfile(outpath, outpath2)
     
     
-def ensemble_predict():
+def ensemble_predict(classif_type, model_filters=None):
     # Load models' predictions
     if classif_type == 'fish_or_not':
         path_to_train = settings.TRAIN_FISH_OR_NO_FISH_CLASSIFICATION_DIR
@@ -148,30 +151,42 @@ def ensemble_predict():
         exit()
     
     print('Loading models...')
-    json_files = sorted([pos_json for pos_json in os.listdir(path_to_json) if pos_json.endswith('.json') and not pos_json == 'classification.json'])
+    json_files = sorted([pos_json for pos_json in os.listdir(path_to_json) if pos_json.startswith('classification') and pos_json.endswith('.json') and not pos_json == 'classification.json'])
     if model_filters is not None:
         json_files = sorted([json_file for json_file in json_files if any(filter in json_file for filter in model_filters)])
-
+    
     models = []
+    modelindices = []
+    modelindex = 0
     for js in json_files:
         with open(os.path.join(path_to_json, js)) as json_file:
-            models.append(json.load(json_file))
+            model = json.load(json_file)
+            models.append(model)
+            modelindices.append(modelindex)
+            
+            for key in model:
+                modelindex += len(model[key])
+                break
+    modelindices.append(modelindex)
     
     if len(models) == 0:
         print('No eligible models found!')
         exit()
     
     # Aggregate model predictions
+    print('Loading predictions...')
     images = []
     results = []
+    
     for img in models[0].keys():
         images.append(img)
         resultforthiskey = []
-        for model in models:
+        for i in range(len(models)):
+            model = models[i]
             if img not in model:
                 print('Image %s not found in some models; all models need to classify all images/crops' % img)
                 exit()
-            if classif_type == 'fish_or_not':
+            if classif_type == 'fish_or_not' or modelindices[i+1]-modelindices[i] == 1:
                 resultforthiskey.append(model[img])
             else:
                 resultforthiskey.extend(model[img])
