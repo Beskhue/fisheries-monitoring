@@ -169,13 +169,19 @@ The weights are saved in `data/weights`.
 
 Using this setup, multiple steps are involved to classify a single image. First, night vision images are preprocessed to be colorized through histogram matching. Next, fish candidates are proposed for each image. The candidates are fed to a fish-or-not network ensemble. The candidates declared to be a fish are fed to a fish type ensemble.
 
-In practice, to classify a data set these stages are separated. First, propose candidates:
+In practice, to classify a data set these stages are separated. 
+
+## Stage 1
+
+Propose the "candidates"; regions that might contain a fish:
 
 ```
 python src/classification.py propose-candidates-fullyconv test
 ```
 
-Next, move the output candidates in `output/candidates/_timestamp_` to `data/test/bounding_boxes_candidates_fullyconv`.
+Move the output candidates in `output/candidates/_timestamp_` to `data/test/bounding_boxes_candidates_fullyconv`.
+
+## Stage 2
 
 Create crops of these candidates:
 
@@ -184,6 +190,8 @@ python src/classification.py crop-candidates-fullyconv test
 ```
 
 Move the output crops from `output/crops/_timestamp_` to `data/train/cropped_candidates_fullyconv`.
+
+## Stage 3
 
 ...
 
