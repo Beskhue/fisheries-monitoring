@@ -224,7 +224,6 @@ def classify_image(params:prep_classif):
             beta = 1
             img_classification = [math.exp(beta*(score - max(img_classification))) for score in img_classification]
             img_classification = [score/sum(img_classification) for score in img_classification]
-            print(img_classification)
             img_classifications[name] = img_classification
             
             
