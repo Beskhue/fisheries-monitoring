@@ -19,14 +19,23 @@ def train_ensemble(classif_type, model_filters=None):
         exit()
     
     print('Loading models...')
-    json_files = sorted([pos_json for pos_json in os.listdir(path_to_json) if pos_json.endswith('.json') and not pos_json == 'classification.json'])
+    json_files = sorted([pos_json for pos_json in os.listdir(path_to_json) if pos_json.startswith('classification') and pos_json.endswith('.json') and not pos_json == 'classification.json'])
     if model_filters is not None:
         json_files = sorted([json_file for json_file in json_files if any(filter in json_file for filter in model_filters)])
-
+    
     models = []
+    modelindices = []
+    modelindex = 0
     for js in json_files:
         with open(os.path.join(path_to_json, js)) as json_file:
-            models.append(json.load(json_file))
+            model = json.load(json_file)
+            models.append(model)
+            modelindices.append(modelindex)
+            
+            for key in model:
+                modelindex += len(model[key])
+                break
+    modelindices.append(modelindex)
     
     if len(models) == 0:
         print('No eligible models found!')
@@ -36,14 +45,16 @@ def train_ensemble(classif_type, model_filters=None):
     print('Loading predictions...')
     images = []
     results = []
+    
     for img in models[0].keys():
         images.append(img)
         resultforthiskey = []
-        for model in models:
+        for i in range(len(models)):
+            model = models[i]
             if img not in model:
                 print('Image %s not found in some models; all models need to classify all images/crops' % img)
                 exit()
-            if classif_type == 'fish_or_not':
+            if classif_type == 'fish_or_not' or modelindices[i+1]-modelindices[i] == 1:
                 resultforthiskey.append(model[img])
             else:
                 resultforthiskey.extend(model[img])
@@ -52,33 +63,41 @@ def train_ensemble(classif_type, model_filters=None):
     # Find true labels
     if classif_type == 'fish_or_not':
         negatives = set(os.listdir(os.path.join(settings.TRAIN_CANDIDATES_FULLYCONV_CROPPED_IMAGES_DIR, 'NoF')))
-        y = [img + '.jpg' not in negatives for img in images]
+        ys = [img + '.jpg' not in negatives for img in images]
         num_preds = 1
     else:
-        print('Fish type labels not implemented for ensembles yet')
-        exit()
+        classes = sorted([dir for dir in os.listdir(settings.TRAIN_CANDIDATES_FULLYCONV_CROPPED_IMAGES_DIR) if os.path.isdir(os.path.join(settings.TRAIN_CANDIDATES_FULLYCONV_CROPPED_IMAGES_DIR, dir))])
+        imagesets = [set(os.listdir(os.path.join(settings.TRAIN_CANDIDATES_FULLYCONV_CROPPED_IMAGES_DIR, clss))) for clss in classes]
+        find_class_of = lambda img: [i for i in range(len(classes)) if img+'.jpg' in imagesets[i]][0]
+        ys = [find_class_of(img) for img in images]
+        num_preds = 8
     
     # Evaluate models
     print('Evaluating individual models...')
     for i in range(len(models)):
-        if classif_type == 'fish_or_not':
-            ypreds = [result[i] for result in results]
-            
-            prec = binary_precision(y, ypreds)
-            rec = binary_recall(y, ypreds)
-            loss = binary_loss(y, ypreds)
-            modelstr = 'Model ' + get_model_name(json_files[i])
-            print('%s: precision %g, recall %g, avg. loss %g' % (modelstr, prec, rec, loss))
+        modelstr = 'Model ' + get_model_name(json_files[i])
+        modellen = modelindices[i+1] - modelindices[i]
+        if modellen == num_preds:
+            if classif_type == 'fish_or_not':
+                ypreds = [result[i] for result in results]
+                
+                prec = binary_precision(ys, ypreds)
+                rec = binary_recall(ys, ypreds)
+                loss = binary_loss(ys, ypreds)
+                print('%s: avg. loss %g, precision %g%%, recall %g%%' % (modelstr, loss, 100*prec, 100*rec))
+            else:
+                ypreds = [result[modelindices[i]:modelindices[i+1]] for result in results]
+                
+                loss = categorical_loss(ys, ypreds)
+                acc = categorical_accuracy(ys, ypreds)
+                print('%s: avg. loss %g, accuracy %g%%' % (modelstr, loss, 100*acc))
         else:
-            ypreds = result[i*num_preds:(i+1)*num_preds]
-            
-            print('Fish type labels not implemented for ensemble evaluation yet')
-            exit()
+            print('%s is not an %d-class model (%d outputs)' % (modelstr, num_preds, modellen))
     
     # Fit ensemble learner
     print('Fitting ensemble learner...')
     m = svm.SVC(kernel='linear', probability=True, class_weight = 'balanced')
-    m = m.fit(results,y)
+    m = m.fit(results,ys)
     
     outpath = os.path.join(path_to_json, "ensemble.pickle")
     outpath2 = os.path.join(path_to_json, "ensemble-%s.pickle" % strftime("%Y%m%dT%H%M%S"))
@@ -95,18 +114,18 @@ def train_ensemble(classif_type, model_filters=None):
     if classif_type == 'fish_or_not':
         ypreds = [result[1] for result in ensemble_preds]
         
-        prec = binary_precision(y, ypreds)
-        rec = binary_recall(y, ypreds)
-        loss = binary_loss(y, ypreds)
-        modelstr = 'Ensemble model'
-        print('%s: precision %g, recall %g, avg. loss %g' % (modelstr, prec, rec, loss))
+        prec = binary_precision(ys, ypreds)
+        rec = binary_recall(ys, ypreds)
+        loss = binary_loss(ys, ypreds)
+        print('Ensemble model: avg. loss %g, precision %g%%, recall %g%%' % (loss, 100*prec, 100*rec))
         
         # Save predictions
         for img, ypred in zip(images, ypreds):
             outdict[img] = ypred            
     else:
-        print('Fish type labels not implemented for ensemble evaluation yet')
-        exit()
+        loss = categorical_loss(ys, ypreds)
+        acc = categorical_accuracy(ys, ypreds)
+        print('Ensemble model: avg. loss %g, accuracy %g%%' % (loss, 100*acc))
     
     outpath = os.path.join(path_to_json, "classification.json")
     outpath2 = os.path.join(path_to_json, "classification-%s.json" % strftime("%Y%m%dT%H%M%S"))
@@ -181,7 +200,13 @@ def ensemble_predict():
         json.dump(outdict, outfile)
     
     shutil.copyfile(outpath, outpath2)
-    
+
+def categorical_loss(ys, ypreds):
+    return np.mean([-math.log(clamp(ypred[y])) for y,ypred in zip(ys, ypreds)])
+
+def categorical_accuracy(ys, ypreds):
+    return np.mean([all(pr<y for pr in ypred) for y,ypred in zip(ys,ypreds)])
+
 def binary_precision(ys, ypreds, thr=0.5):
     if not any(ypred>thr for ypred in ypreds):
         return -1
