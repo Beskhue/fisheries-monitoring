@@ -171,7 +171,7 @@ def classify_image(params:prep_classif):
     import shutil
     from time import strftime
 
-    threshold = 0.5
+    threshold = 0.0
     
     # Load fish type classifications
     inpath = os.path.join(params.fish_type_classification_dir, "classification.json")
