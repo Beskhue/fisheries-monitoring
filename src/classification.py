@@ -314,6 +314,33 @@ def classify_image(params:prep_classif):
     shutil.copyfile(outpath, outpath2)
 
 
+
+    if params.dataset == "train":
+        # Calculate loss on train set
+
+        classes = ["ALB", "BET", "DOL", "LAG", "NoF", "OTHER", "SHARK", "YFT"]
+
+        ys = []
+        ys_pred = []
+
+        n = 0
+        for y, meta in zip(original_images['y'], original_images['meta']):
+            y_idx = classes.index(y)
+
+            ys.append(y_idx)
+            ys_pred.append(img_classifications[meta['filename']])
+
+            if y_idx == np.argmax(img_classifications[meta['filename']]):
+                n += 1
+
+        from ensembler import categorical_loss
+
+        print("Loss on train set: %s" % categorical_loss(ys, ys_pred))
+        print("Accuracy on train set: %s" % (n / len(ys)))
+
+
+            
+
 if __name__ == "__main__":
     run(propose_candidates,
         crop_candidates,
