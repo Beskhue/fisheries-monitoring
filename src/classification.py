@@ -1,3 +1,4 @@
+import math
 from clize import run
 from clize.parameters import argument_decorator
 import os
@@ -170,7 +171,7 @@ def classify_image(params:prep_classif):
     import shutil
     from time import strftime
 
-    threshold = 0.5
+    threshold = 0.0
     
     # Load fish type classifications
     inpath = os.path.join(params.fish_type_classification_dir, "classification.json")
@@ -199,7 +200,7 @@ def classify_image(params:prep_classif):
                 if original_img not in cand_classifications:
                     cand_classifications[original_img] = []
 
-                cand_classifications[original_img].append(fish_type_classification[name])
+                cand_classifications[original_img].append({'p_fish': fish_or_no_fish[name], 'p_fish_types': fish_type_classification[name]})
             
     outpath2 = os.path.join(params.fish_type_classification_dir, "aggregatedclassification-%s.json" % strftime("%Y%m%dT%H%M%S"))
     with open(outpath2, 'w') as outfile:
@@ -214,10 +215,14 @@ def classify_image(params:prep_classif):
         name = meta['filename']
         if name not in cand_classifications: # no candidates are proposed (or no proposed candidates are accepted by the fish-or-no-fish ensemble)
             print('Image has zero detected fish candidates: ' + name)
+
+            # The distribution of classes for all images without candidates in the train set:
             #                            ALB   BET   DOL   LAG   NoF   OTHER SHARK YFT
-            img_classifications[name] = [0.001,0.001,0.001,0.001,0.993,0.001,0.001,0.001]
+            img_classifications[name] = [96,   2,    3,    1,    381,  32,   23,   13]
+            img_classifications[name] = [p / 551.0 for p in img_classifications[name]] 
         else:
 
+            """
             # We grab the prediction of the candidate where the main classification is assigned the most confidence.
             # Note that a most-confident NoF classification is never chosen, unless all candidates have NoF as the
             # most-confident prediction.
@@ -252,7 +257,45 @@ def classify_image(params:prep_classif):
                 img_classifications[name] = cand_classifications[name][idx_most_certain_non_nof]
             else:
                 img_classifications[name] = cand_classifications[name][idx_most_certain_nof]
-            
+            """
+
+            # Find the NoF predictions
+
+            nof_confidences = []
+
+            for cand_classification in cand_classifications[name]:
+                p_fish_types = cand_classification['p_fish_types']
+                nof_confidences.append(p_fish_types[4])
+
+            epsilon = 0.00000001
+
+            #                 ALB  BET  DOL  LAG  OTHER SHARK YFT
+            classification = [0.0, 0.0, 0.0, 0.0, 0.0,  0.0,  0.0]
+
+            for cand_classification in cand_classifications[name]:
+                p_fish = cand_classification['p_fish']
+                p_fish_types = cand_classification['p_fish_types']
+
+                classification = [a + math.log(b * p_fish) for a, b in zip(classification, p_fish_types[:4] + p_fish_types[5:])]
+
+            classification = list(map(lambda a: a - max(classification), classification))
+            classification = list(map(lambda a: math.exp(a), classification))
+            classification = list(map(lambda a: a / sum(classification), classification))
+
+            #                     ALB  BET  DOL  LAG  NoF OTHER SHARK YFT
+            img_classification = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0,  0.0,  0.0]
+            img_classification[0] = classification[0]
+            img_classification[1] = classification[1]
+            img_classification[2] = classification[2]
+            img_classification[3] = classification[3]
+            img_classification[4] = min(nof_confidences) # Least confident NoF predicition
+            img_classification[5] = classification[4]
+            img_classification[6] = classification[5]
+            img_classification[7] = classification[6]
+
+            img_classification = list(map(lambda a: a / sum(img_classification), img_classification))
+
+            img_classifications[name] = img_classification
             
     # Output in kaggle format
     class_order = [0, 1, 2, 3, 4, 5, 6, 7]
