@@ -121,8 +121,6 @@ def classify_fish_type(params:prep_classif):
     import metrics
     import shutil
     from time import strftime
-    
-    threshold = 0.5
 
     ppl = pipeline.Pipeline(data_type = "candidates_fullyconv_cropped", dataset = params.dataset)
 
