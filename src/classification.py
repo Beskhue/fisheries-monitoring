@@ -214,7 +214,6 @@ def classify_image(params:prep_classif):
     for meta in original_images['meta']:
         name = meta['filename']
         if name not in cand_classifications: # no candidates are proposed (or no proposed candidates are accepted by the fish-or-no-fish ensemble)
-            print('Image has zero detected fish candidates: ' + name)
 
             # The distribution of classes for all images without candidates in the train set:
             #                            ALB   BET   DOL   LAG   NoF   OTHER SHARK YFT
