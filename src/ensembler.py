@@ -124,11 +124,17 @@ def train_ensemble(classif_type, model_filters=None):
         
         # Save predictions
         for img, ypred in zip(images, ypreds):
-            outdict[img] = ypred            
+            outdict[img] = ypred
     else:
+        ypreds = ensemble_preds
+        
         loss = categorical_loss(ys, ypreds)
         acc = categorical_accuracy(ys, ypreds)
         print('Ensemble model: avg. loss %g, accuracy %g%%' % (loss, 100*acc))
+    
+        # Save predictions
+        for img, ypred in zip(images, ypreds):
+            outdict[img] = ypred.tolist()
     
     outpath = os.path.join(path_to_json, "classification.json")
     outpath2 = os.path.join(path_to_json, "classification-%s.json" % strftime("%Y%m%dT%H%M%S"))
@@ -165,7 +171,10 @@ def ensemble_predict(classif_type, model_filters=None):
             modelindices.append(modelindex)
             
             for key in model:
-                modelindex += len(model[key])
+                if isinstance(model[key], list):
+                    modelindex += len(model[key])
+                else:
+                    modelindex += 1
                 break
     modelindices.append(modelindex)
     
@@ -194,7 +203,8 @@ def ensemble_predict(classif_type, model_filters=None):
     
     # Load ensemble learner
     print('Loading ensemble learner...')
-    m = pickle.load(os.path.join(path_to_train, "ensemble.pickle"))
+    with open(os.path.join(path_to_train, "ensemble.pickle"), 'rb') as infile:
+        m = pickle.load(infile)
     
     # Evaluate ensemble
     print('Evaluating ensemble...')
@@ -206,8 +216,9 @@ def ensemble_predict(classif_type, model_filters=None):
         for img, ypred in zip(images, ypreds):
             outdict[img] = ypred            
     else:
-        print('Fish type labels not implemented for ensemble evaluation yet')
-        exit()
+        ypreds = [result.tolist() for result in ensemble_preds]
+        for img, ypred in zip(images, ypreds):
+            outdict[img] = ypred
     
     outpath = os.path.join(path_to_json, "classification.json")
     outpath2 = os.path.join(path_to_json, "classification-%s.json" % strftime("%Y%m%dT%H%M%S"))
